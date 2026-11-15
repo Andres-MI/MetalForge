@@ -35,6 +35,29 @@ ejercicio, el reloj, el metrónomo, la entrada de audio, el juez, el dominio y l
 5. Los niveles 1..10 y sus nombres salen de `generate(skill, ...)` y `levelLabel(skill, nivel)`.
    Tu juego no genera ni puntúa nada por su cuenta.
 
+## Arcades de varias rondas (ejemplo: Salto)
+
+Un arcade puede encadenar varias rondas (cada una un `Exercise` con su tempo) sobre la MISMA entrada:
+
+- `beginGame(this, data, { manual: true })` arranca la primera sesión y se ocupa de Esc, la energía del fondo y de
+  cerrar la entrada; la escena rellena `hooks.judged` y abre los resultados ella misma con `showResults(...)`.
+- Entre rondas: `session.release()` (para la ronda sin cerrar la entrada) y `session = session.spawn(ejercicio)`
+  (misma entrada, latencia, dominio y metrónomo); después `trackEnergy(this, session)` y `session.start()`.
+  Hazlo en `update`, no dentro de un evento de la sesión. Solo la última sesión se cierra con `dispose()`.
+- Lo que está en juego (puntos, racha, vidas, tempo adaptativo) va en un módulo puro y probado, fuera de la escena:
+  ver `src/game/salto/state.ts` y `pace.ts`, y `tests/salto.test.ts`.
+- Resultados: pasa `arcade: { score, bestCombo, previousBest, newBest }` en `ResultsData`; la pantalla común añade la
+  línea de puntos y récord. El récord por juego+nivel se guarda con `saveArcadeBest` (clave `arcadeBest` del blob de
+  progreso del instrumento, junto a `mastery`).
+- Perder no devuelve al menú: en Salto, sin corazones la ronda se repite más lenta («Otra vez, más despacio»);
+  tras 3 reinicios la partida termina en resultados.
+
+## Notas esperadas
+
+`GameSession.start()` llama a `input.setExpected(midis)` con las notas del ejercicio (`note` → su midi, `anyOf` y
+`chord` → sus midis, `attack`/`pitchClass` → ninguna) y `dispose()` las borra. El detector solo las usa como último
+recurso cuando un ataque queda tapado por cuerdas que siguen sonando. Un juego no tiene que hacer nada.
+
 ## Reglas
 
 - Aprender (`learn`): sin vidas ni fallo. Practicar (`practice`): puede haber presión, pero siempre acaba con
@@ -46,6 +69,8 @@ ejercicio, el reloj, el metrónomo, la entrada de audio, el juez, el dominio y l
 
 - Node: `new GameSession({ exercise, input: new FakeInput(), ... })` y `playFake(session, fake, { offsetMs, skip })`
   (ver `tests/game.test.ts`).
+- Navegador (Salto: `scripts/salto-fake.cjs`; en juegos de varias rondas `fake` apunta siempre a la ronda en curso
+  y `__metalforge.salto` da ronda, corazones, puntos, pose y posición de los obstáculos).
 - Navegador: `window.__metalforge.useFakeInput = true` antes de entrar al juego; después
   `window.__metalforge.fake.play({ offsetMs: 150, untilBeat: 3 })`, `fake.advanceToBeat(-2)`, `fake.advance(s)`.
   `__metalforge.judged` y `__metalforge.results` dicen qué pasó. Ejemplo: `scripts/pulso-fake.cjs`.
