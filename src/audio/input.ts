@@ -23,6 +23,8 @@ import type { WorkerOut } from './detector.worker';
 export interface InputHandle {
   context: AudioContext;
   stop(): void;
+  /** Tells the detector which MIDI notes the game waits for (last resort help; empty clears it). */
+  setExpected(midis: number[]): void;
   /** Context time (s) of the first captured sample; null until the first block arrives. */
   captureStart(): number | null;
   /** Diagnostics: seconds the processed audio trails `context.currentTime` (median of the last blocks). */
@@ -72,6 +74,7 @@ export async function startInput(
   source.connect(node);
   return {
     context,
+    setExpected: (midis) => worker.postMessage({ type: 'expected', midis }),
     captureStart: () => firstUpTo,
     lag() {
       if (!lags.length) return 0;

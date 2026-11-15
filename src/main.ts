@@ -9,8 +9,9 @@ import { TunerScene } from './scenes/tuner';
 import { ModeChoiceScene } from './scenes/modechoice';
 import { LevelSelectScene } from './scenes/levelselect';
 import { PulsoScene } from './scenes/pulso';
+import { SaltoScene } from './scenes/salto';
 import { ResultsScene } from './scenes/results';
 import { CalibrationScene } from './scenes/calibration';
 
 installHooks();
-createGame(document.getElementById('app')!, [BootScene, PickerScene, HubScene, SoonScene, TunerScene, ModeChoiceScene, LevelSelectScene, PulsoScene, ResultsScene, CalibrationScene]);
+createGame(document.getElementById('app')!, [BootScene, PickerScene, HubScene, SoonScene, TunerScene, ModeChoiceScene, LevelSelectScene, PulsoScene, SaltoScene, ResultsScene, CalibrationScene]);

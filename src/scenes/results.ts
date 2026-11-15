@@ -66,6 +66,13 @@ export class ResultsScene extends Phaser.Scene {
     drawText(this, x, 113, `${s.hits} a tiempo  ${s.early} pronto  ${s.late} tarde`, { color: 'foam' });
     drawText(this, x, 124, `${s.miss} sin tocar  ${s.strays} sueltas`, { color: s.strays > 0 ? 'amber' : 'foam' });
 
+    // Arcade games add their score line; without `arcade` the screen is the same as before.
+    if (data.arcade) {
+      const a = data.arcade;
+      const record = a.newBest ? '¡NUEVO RÉCORD!' : `RÉCORD ${a.previousBest}`;
+      drawText(this, W / 2, 135, `PUNTOS ${a.score}  ·  MEJOR RACHA ${a.bestCombo}  ·  ${record}`, { color: a.newBest ? 'amber' : 'cyan', align: 'center' });
+    }
+
     const last = data.level >= MAX_LEVEL;
     this.buttons = [
       { label: 'Repetir', enabled: true, act: () => this.go({ ...data.params, seed: undefined }) },

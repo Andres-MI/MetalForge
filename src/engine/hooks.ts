@@ -8,6 +8,28 @@ export interface JudgedHook {
   deltaMs: number;
 }
 
+export interface SaltoHook {
+  round: number;
+  rounds: number;
+  /** Sessions started in this run (rounds + restarts), 1-based: changes every time a new round or retry begins. */
+  attempt: number;
+  restarts: number;
+  bpm: number;
+  hearts: number;
+  score: number;
+  combo: number;
+  bestCombo: number;
+  multiplier: number;
+  /** 'run' | 'jump' | 'stumble': what the runner is doing right now. */
+  pose: string;
+  /** Text of the banner on screen ('' when none), e.g. 'Otra vez, más despacio'. */
+  banner: string;
+  /** Screen x (320-wide canvas) of each obstacle of the current round, and of the rhythm marks above. */
+  obstacleX: number[];
+  targetBeats: number[];
+  over: boolean;
+}
+
 export interface MetalforgeHooks {
   /** MIDI notes the detector reported as attacks, most recent last (the tuner scene fills it). */
   heard: number[];
@@ -29,7 +51,9 @@ export interface MetalforgeHooks {
   /** Final results of the game on screen (timed games), in order. */
   judged: JudgedHook[];
   /** Summary of the last finished round, or null. */
-  results: { stars: number; accuracy: number; tendency: string | null; meanMs: number | null; strays: number; hits: number; early: number; late: number; miss: number } | null;
+  results: { stars: number; accuracy: number; tendency: string | null; meanMs: number | null; strays: number; hits: number; early: number; late: number; miss: number; arcade?: { score: number; bestCombo: number; previousBest: number; newBest: boolean } } | null;
+  /** Salto (arcade) live state, or null outside it. */
+  salto: SaltoHook | null;
   /** Last calibration measured, or null. */
   calibration: { offsetMs: number; spreadMs: number; used: number; matched: number; ok: boolean } | null;
   /** Audio chain diagnostics of the running input (null with a fake input). */
@@ -52,6 +76,7 @@ export const hooks: MetalforgeHooks = {
   fake: null,
   judged: [],
   results: null,
+  salto: null,
   calibration: null,
   audio: null,
 };

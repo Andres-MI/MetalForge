@@ -45,6 +45,12 @@ describe('game sprites', () => {
     });
   }
 
+  it('Salto sprites: 16x16 runner poses, 8x8 objects', () => {
+    for (const n of ['runner-run', 'runner-jump', 'runner-stumble']) for (const f of SPRITES[n].frames) expect([f[0].length, f.length]).toEqual([16, 16]);
+    expect(SPRITES['runner-run'].frames.length).toBeGreaterThanOrEqual(2);
+    for (const n of ['obst-coral', 'obst-urchin', 'obst-pit', 'ground-top', 'ground-fill', 'heart', 'heart-empty']) expect([SPRITES[n].frames[0][0].length, SPRITES[n].frames[0].length]).toEqual([8, 8]);
+  });
+
   it('uses the agreed sizes', () => {
     expect([SPRITES.cabinet.frames[0][0].length, SPRITES.cabinet.frames[0].length]).toEqual([CABINET_W, CABINET_H]);
     for (const n of ['hero', 'jelly']) for (const f of SPRITES[n].frames) expect([f[0].length, f.length]).toEqual([16, 16]);
