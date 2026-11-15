@@ -11,6 +11,12 @@ export interface KeyValueStorage {
 export interface Settings {
   /** Night-aquarium background effects (drift, colour cycling, wobble). */
   backgroundEffects: boolean;
+  /** Calibrated total latency in seconds (input + output + habit). Absent until calibrated. */
+  latencyOffset?: number;
+  /** Metronome volume 0..1 (absent = default 0.6). */
+  metronomeVolume?: number;
+  /** Metronome on in timed games (absent = on). */
+  metronomeOn?: boolean;
 }
 
 export interface Profile {
@@ -30,13 +36,14 @@ export function sanitizeProfile(raw: unknown): Profile {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const s = (r.settings && typeof r.settings === 'object' ? r.settings : {}) as Record<string, unknown>;
   const instrument = typeof r.instrument === 'string' && r.instrument in INSTRUMENTS ? (r.instrument as InstrumentId) : null;
-  return {
-    version: 1,
-    instrument,
-    settings: {
-      backgroundEffects: typeof s.backgroundEffects === 'boolean' ? s.backgroundEffects : DEFAULT_PROFILE.settings.backgroundEffects,
-    },
+  const settings: Settings = {
+    backgroundEffects: typeof s.backgroundEffects === 'boolean' ? s.backgroundEffects : DEFAULT_PROFILE.settings.backgroundEffects,
   };
+  // Optional settings only appear when valid, so a fresh profile still equals DEFAULT_PROFILE.
+  if (typeof s.latencyOffset === 'number' && Number.isFinite(s.latencyOffset) && Math.abs(s.latencyOffset) < 2) settings.latencyOffset = s.latencyOffset;
+  if (typeof s.metronomeVolume === 'number' && Number.isFinite(s.metronomeVolume)) settings.metronomeVolume = Math.min(1, Math.max(0, s.metronomeVolume));
+  if (typeof s.metronomeOn === 'boolean') settings.metronomeOn = s.metronomeOn;
+  return { version: 1, instrument, settings };
 }
 
 export class ProfileStore {

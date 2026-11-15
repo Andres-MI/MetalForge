@@ -98,6 +98,11 @@ export class Judge {
     return this.finals.every((f) => f !== undefined);
   }
 
+  /** Detected sounds so far that matched no target (same number `summary().strays` ends with). */
+  get strayCount(): number {
+    return this.strays;
+  }
+
   /** Index of the target waiting for the player (untimed), or the first unresolved one (timed). */
   get currentIndex(): number {
     return this.ex.timed ? this.finals.findIndex((f) => !f) : this.cursor;
