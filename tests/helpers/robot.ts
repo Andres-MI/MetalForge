@@ -108,6 +108,12 @@ export function runRobot(exercise: Exercise, opts: RobotOptions = {}): RobotRun 
   const seconds = last + 1.2;
   const audio = renderPlucks(plucks, { sampleRate: SR, duration: seconds, noise: opts.noise, seed: 7 });
   const det = new Detector({ sampleRate: SR, windowSize: inst.windowSize, ...pitchRange(inst) });
+  // The game tells the detector which notes the exercise uses, as the real session does.
+  det.setExpected(
+    exercise.targets.flatMap((t) =>
+      t.kind.type === 'note' ? [t.kind.midi] : t.kind.type === 'anyOf' || t.kind.type === 'chord' ? t.kind.midis : [],
+    ),
+  );
   const judge = new Judge(exercise, { startTime: leadIn, ...opts.judge });
   const events: DetectorEvent[] = [];
   const chunk = 128;

@@ -41,13 +41,14 @@ export class Detector {
   private hopEnergy = 0;
   private history: number[] = []; // rms of the last hops, newest last
   private lastOnset = -Infinity; // sample index
-  private pending: { at: number; lastMidi: number | null; agree: number; pre: Float32Array | null } | null = null;
+  private pending: { at: number; lastMidi: number | null; agree: number; pre: Float32Array | null; preMidi: number | null } | null = null;
   private readonly fftSize: number;
   private readonly re: Float64Array;
   private readonly im: Float64Array;
   private readonly preMag: Float64Array;
   private readonly postMag: Float64Array;
   private hopCount = 0;
+  private expectedMidis: number[] = [];
 
   constructor(opts: DetectorOptions) {
     this.o = {
@@ -90,7 +91,11 @@ export class Detector {
    *  - `fresh`: the pitch of the energy that appeared, from the autocorrelation of the difference
    *    spectrum (the same periodicity method as the main detector, applied only to what is new).
    */
-  private compareWithBefore(pre: Float32Array, post: Float32Array, len: number): { gain: (midi: number) => number; fresh: number | null } {
+  private compareWithBefore(
+    pre: Float32Array,
+    post: Float32Array,
+    len: number,
+  ): { gain: (midi: number) => number; fresh: number | null; expected: () => number | null } {
     const n = Math.min(len, pre.length);
     const { fftSize, re, im, preMag, postMag } = this;
     const half = fftSize / 2;
@@ -110,17 +115,47 @@ export class Detector {
       return after / before;
     };
 
+    // Last resort, when the mix is too dense to read a pitch: check the notes the game is waiting for.
+    // One of them counts if energy clearly appeared at its harmonics and NOT one or two octaves-ish
+    // below (which would mean a lower note whose harmonics merely coincide with it).
+    const diffs = new Float64Array(half);
+    for (let k = 1; k < half; k++) diffs[k] = Math.max(0, postMag[k] - preMag[k]);
+    const diffAt = (f: number) => {
+      const i = Math.round(f / binHz);
+      return i >= 1 && i + 1 < half ? Math.max(diffs[i - 1], diffs[i], diffs[i + 1]) : 0;
+    };
+    const expected = () => {
+      let bestMidi: number | null = null;
+      let bestStrength = 0;
+      for (const midi of this.expectedMidis) {
+        const f0 = 440 * Math.pow(2, (midi - 69) / 12);
+        const own = diffAt(f0);
+        if (gain(midi) < 2 || own <= 0) continue;
+        if (diffAt(f0 / 2) > 0.5 * own || diffAt(f0 / 3) > 0.5 * own) continue;
+        let strength = 0;
+        for (let h = 1; h <= 4; h++) strength += diffAt(h * f0);
+        if (strength > bestStrength) {
+          bestStrength = strength;
+          bestMidi = midi;
+        }
+      }
+      return bestMidi;
+    };
+
     // Autocorrelation of the difference = inverse FFT of its power spectrum.
     re.fill(0);
     im.fill(0);
-    for (let k = 1; k < half; k++) {
+    // Only the band where string partials live: rumble below the lowest note would hide the period.
+    const kLo = Math.max(1, Math.floor((fmin * 0.8) / binHz));
+    const kHi = Math.min(half - 1, Math.ceil(Math.min(6000, fmax * 6) / binHz));
+    for (let k = kLo; k <= kHi; k++) {
       const d = Math.max(0, postMag[k] - preMag[k]);
       re[k] = d * d;
       re[fftSize - k] = d * d;
     }
     fft(re, im, true);
     const zero = re[0];
-    if (zero <= 0) return { gain, fresh: null };
+    if (zero <= 0) return { gain, fresh: null, expected };
     const minLag = Math.max(2, Math.floor(sampleRate / fmax));
     const maxLag = Math.min(Math.ceil(sampleRate / fmin), Math.floor(n / 2) - 1);
     let tau = 1;
@@ -139,7 +174,7 @@ export class Detector {
         best = -1;
       }
     }
-    if (peaks.length === 0 || highest < 0.4 * zero) return { gain, fresh: null };
+    if (peaks.length === 0 || highest < 0.5 * zero) return { gain, fresh: null, expected };
     const chosen = peaks.find((q) => re[q] >= 0.85 * highest)!;
     const y0 = re[chosen - 1];
     const y1 = re[chosen];
@@ -147,7 +182,15 @@ export class Detector {
     const denom = y0 - 2 * y1 + y2;
     const shift = denom !== 0 ? (0.5 * (y0 - y2)) / denom : 0;
     const freq = sampleRate / (chosen + (Math.abs(shift) < 1 ? shift : 0));
-    return { gain, fresh: Math.round(69 + 12 * Math.log2(freq / 440)) };
+    return { gain, fresh: Math.round(69 + 12 * Math.log2(freq / 440)), expected };
+  }
+
+  /**
+   * Tells the detector which notes the game is waiting for. It never changes a pitch that was read
+   * clearly; it only helps when a pluck is buried under several ringing strings.
+   */
+  setExpected(midis: Iterable<number>): void {
+    this.expectedMidis = [...new Set(midis)];
   }
 
   process(chunk: Float32Array): DetectorEvent[] {
@@ -199,7 +242,13 @@ export class Detector {
       if (past > this.o.silenceRms * 1.5 && this.written >= windowSize) {
         pre = this.tail(windowSize).slice(0, windowSize - hop);
       }
-      this.pending = { at, lastMidi: null, agree: 0, pre };
+      // What was the loudest pitch before the pluck? A reading equal to it needs proof that it is new.
+      let preMidi: number | null = null;
+      if (pre) {
+        const before = detectPitch(pre, sampleRate, { fmin, fmax });
+        if (before && before.clarity >= minClarity) preMidi = Math.round(69 + 12 * Math.log2(before.freq / 440));
+      }
+      this.pending = { at, lastMidi: null, agree: 0, pre, preMidi };
       events.push({ type: 'onset', time: at / sampleRate, rms });
     }
     h.push(rms);
@@ -222,16 +271,21 @@ export class Detector {
           freq = r.freq;
           clarity = r.clarity;
         }
-        if (p.pre && len >= 1024) {
-          // The time-domain reading follows whatever is loudest, which may be a string that was already
-          // ringing. Keep it only if energy really appeared at that note; otherwise take what is new.
-          const cmp = this.compareWithBefore(p.pre, post, len);
-          if (midi === null || cmp.gain(midi) < 1.25) {
-            midi = cmp.fresh;
-            if (midi !== null) freq = 440 * Math.pow(2, (midi - 69) / 12);
+        if (p.pre) {
+          // The time-domain reading follows whatever is loudest. Two cases need the before/after comparison:
+          //  - it reads the same pitch that was sounding before the pluck: a re-pluck, or just the old string?
+          //  - it reads nothing for a while: the pluck is buried under several ringing strings.
+          const sameAsBefore = midi !== null && midi === p.preMidi;
+          const late = midi === null && now - p.at > 1.5 * windowSize;
+          if (sameAsBefore && (len < 1024 || len < (3 * sampleRate) / freq)) {
+            midi = null; // too short to compare yet
+          } else if (sameAsBefore || late) {
+            const cmp = this.compareWithBefore(p.pre, post, len);
+            if (midi === null || cmp.gain(midi) < 1.25) {
+              midi = cmp.fresh ?? cmp.expected();
+              if (midi !== null) freq = 440 * Math.pow(2, (midi - 69) / 12);
+            }
           }
-        } else if (p.pre) {
-          midi = null; // too early to tell old from new
         }
         if (midi !== null) {
           if (p.lastMidi === midi) p.agree++;
