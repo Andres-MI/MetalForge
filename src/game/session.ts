@@ -15,6 +15,7 @@ import { emptyMastery, updateMastery, type Mastery } from '../progress';
 import { Judge } from '../scoring/judge';
 import type { RoundSummary, ScoredTarget } from '../scoring/types';
 import { GameClock } from './clock';
+import { expectedMidis } from './expected';
 import type { GameInput } from './input';
 import { Metronome, AudioClickSink, type ClickSink } from './metronome';
 import type { MasteryStore } from './progressBlob';
@@ -121,6 +122,7 @@ export class GameSession {
     this.clock.start({ bpm: this.exercise.bpm ?? 60, countInBeats: this.countInBeats });
     this.unsubscribe = this.input.subscribe((events, upTo) => this.onInput(events, upTo));
     this.metronome.start();
+    this.input.setExpected?.(expectedMidis(this.exercise));
     // A real input has no virtual driver: tick on a timer (it only polls; musical time comes from the clock).
     if (this.input.kind === 'audio') this.timer = setInterval(() => this.tick(), this.tickMs);
     this.tick();
@@ -153,6 +155,7 @@ export class GameSession {
     this.timer = null;
     this.unsubscribe?.();
     this.unsubscribe = null;
+    this.input.setExpected?.([]);
     this.input.stop();
   }
 

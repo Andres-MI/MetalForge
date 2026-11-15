@@ -20,6 +20,8 @@ export interface GameInput extends TimeSource {
   subscribe(cb: InputListener): () => void;
   /** Seconds to subtract from `now()` to get what the player currently HEARS (device output latency); 0 if unknown. */
   outputLatency(): number;
+  /** Tells the detector which MIDI notes the exercise uses (last-resort help); empty clears it. */
+  setExpected?(midis: number[]): void;
   /** Audio chain diagnostics (seconds), real input only. */
   info?(): { lag: number; base: number; output: number };
   stop(): void;
@@ -47,6 +49,7 @@ export async function openAudioInput(inst: Instrument): Promise<GameInput> {
       return l.output || l.base;
     },
     info: () => ({ lag: handle.lag(), ...handle.latencies() }),
+    setExpected: (midis) => handle.setExpected(midis),
     subscribe(cb) {
       listeners.add(cb);
       return () => listeners.delete(cb);
@@ -65,6 +68,11 @@ export class FakeInput implements GameInput {
   private t = 0;
   private readonly listeners = new Set<InputListener>();
   private pending: DetectorEvent[] = [];
+  /** Last expected notes the session set (tests read it). */
+  expected: number[] = [];
+  setExpected(midis: number[]): void {
+    this.expected = [...midis];
+  }
 
   now(): number {
     return this.t;

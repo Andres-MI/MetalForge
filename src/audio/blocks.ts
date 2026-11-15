@@ -28,6 +28,11 @@ export class BlockProcessor {
     return this.originFrame === null ? null : this.originFrame / this.sr;
   }
 
+  /** Tells the detector which notes the game waits for (empty clears it). */
+  setExpected(midis: Iterable<number>): void {
+    this.detector.setExpected(midis);
+  }
+
   /** Feeds one block; returns events (context-time) and how far the detector has now processed (context seconds). */
   push(samples: Float32Array, frame: number): { events: DetectorEvent[]; upTo: number } {
     const events: DetectorEvent[] = [];
