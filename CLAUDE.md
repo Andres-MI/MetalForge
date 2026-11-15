@@ -22,6 +22,16 @@ de construcción y sus prompts en `docs/FASES.md`.
 - `src/audio/` — único sitio que toca la captura de Web Audio.
 - `src/ui/` — pantallas. `palette.ts` es la única fuente de colores.
 - `scripts/` — banco de detección y pruebas en navegador.
+- `src/exercises/` — generadores puros y deterministas por semilla (`generate(skill, {instrument, level 1..10, seed,
+  length})`): ritmo, trastes, cuerdas, acordes y escalas. Cada nivel añade UNA dificultad; `itemId` estables.
+  Las zonas (`fretsZone`, `stringsZone`, `scalesZone`) no repiten tono: se prueba en `tests/exercises.test.ts`.
+- `src/scoring/` — `Judge`: consume `DetectorEvent` y un `Exercise` y da un `TargetResult` por objetivo (con
+  ventanas acierto/pronto/tarde, más anchas en bajo). Los acordes pasan por `ChordVerifier` (hoy por tono;
+  aquí se enchufará el verificador espectral). `summarize` da precisión, tendencia y estrellas.
+- `src/progress/` — dominio por `itemId` con repetición espaciada (`updateMastery`, `pickForReview`,
+  `toJSON`/`fromJSON`). El tiempo se inyecta; el guardado es de `src/profile/`.
+- `tests/helpers/robot.ts` — jugador robot: sintetiza el ejercicio con errores inyectables, lo pasa por el
+  detector real y el `Judge`.
 
 ## Reglas
 
