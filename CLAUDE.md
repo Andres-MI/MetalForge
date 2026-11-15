@@ -10,7 +10,11 @@ de construcción y sus prompts en `docs/FASES.md`.
 - `npm test` — pruebas unitarias y banco de detección con umbrales
 - `npm run test:dsp` — informe del detector (añade `-- --verbose` para ver cada fallo)
 - `npm run fixtures` — genera los WAV de `tests/fixtures` (no se versionan)
-- `node scripts/play-tuner.cjs guitar|bass4|bass5` — abre el afinador en Chromium con un WAV como micrófono
+- `node scripts/play-tuner.cjs guitar|bass4|bass5 [url]` — abre el juego en Chromium con un WAV como micrófono,
+  elige instrumento, va del salón al afinador con el teclado y muestra las notas oídas (con `npm run dev` en
+  marcha; pasa la URL si usas otro puerto)
+- `node scripts/shots.cjs [url]` — capturas de selector, salón, «Próximamente» y afinador en `test-results/`
+  (1280x720 y 1920x1080)
 - `npm run build` — comprobación de tipos y compilación
 
 ## Arquitectura
@@ -20,7 +24,18 @@ de construcción y sus prompts en `docs/FASES.md`.
 - `src/detection/` — detección de ataques y tono. Funciones puras sobre buffers, sin Web Audio.
 - `src/synth/` — síntesis de cuerda pulsada: audio de prueba y ejemplos sonoros dentro del juego.
 - `src/audio/` — único sitio que toca la captura de Web Audio.
-- `src/ui/` — pantallas. `palette.ts` es la única fuente de colores.
+- `src/art/` — sprites como matrices de caracteres con leyenda de NOMBRES de la paleta (`sprites.ts`; `pixels.ts`
+  los convierte a píxeles, puro y probado), fuente de mapa de bits 5x7 propia (`font.ts`, puro) y la parte
+  Phaser: `textures.ts` (texturas y animaciones al arrancar) y `text.ts` (`drawText`: todo texto del juego pasa
+  por aquí). Personajes 16x16, objetos e iconos 8x8, máquinas recreativas 24x40.
+- `src/engine/` — Phaser 3 (320x180, zoom entero, sin suavizado): `game.ts`, fondo de acuario `aquarium.ts`
+  (apagable; `energy` 0..1 lo anima; solo mueve el fondo, nunca el primer plano), `kit.ts` (ayudas de escena) y
+  `hooks.ts` (`window.__metalforge`: `heard`, `scene`, `instrument`, `selected`, `backgroundEffects`, para automatizar).
+- `src/scenes/` — escenas Phaser: `boot`, `picker` (primer arranque), `hub` (salón recreativo; las máquinas salen
+  de la lista de `hubData.ts`), `soon` («Próximamente»), `tuner`. Una escena nueva se registra en `main.ts`.
+- `src/profile/` — perfil en IndexedDB tras la interfaz `KeyValueStorage` (`store.ts`; `idb.ts` real, `memory.ts`
+  falsa para pruebas): instrumento, ajustes y un blob de progreso opaco por instrumento.
+- `src/ui/` — `palette.ts` es la única fuente de colores (claves + `paletteInt`); `style.css` centra el lienzo.
 - `scripts/` — banco de detección y pruebas en navegador.
 
 ## Reglas
