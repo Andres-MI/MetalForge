@@ -1,8 +1,8 @@
-# Abisal
+# MetalForge
 
 Juego web para aprender guitarra y bajo con un instrumento real: el programa escucha por la entrada de
 audio y puntúa. Es un plan de estudio hecho de minijuegos. Diseño completo en `docs/DISENO.md`; fases
-de construcción y sus prompts en `docs/FASES.md`. "Abisal" es un nombre provisional.
+de construcción y sus prompts en `docs/FASES.md`.
 
 ## Comandos
 

@@ -20,7 +20,7 @@ await page.click('[data-testid="listen"]');
 await page.waitForTimeout(4000);
 await page.screenshot({ path: `test-results/tuner-${instrument}.png` });
 await page.waitForTimeout(11000);
-const heard = await page.evaluate(() => window.__abisal.heard);
+const heard = await page.evaluate(() => window.__metalforge.heard);
 console.log(JSON.stringify({ instrument, heard, errors }));
 await browser.close();
 })();

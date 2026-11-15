@@ -6,7 +6,7 @@ import { STRING_COLORS } from './palette';
 export function mountTuner(root: HTMLElement): void {
   root.innerHTML = `
     <section class="tuner">
-      <h1>ABISAL</h1>
+      <h1>METALFORGE</h1>
       <div class="row" id="instruments"></div>
       <div class="strings" id="strings"></div>
       <div class="note" id="note" data-testid="note">—</div>
@@ -19,7 +19,7 @@ export function mountTuner(root: HTMLElement): void {
   let instrument: InstrumentId = 'guitar';
   let handle: InputHandle | null = null;
   const heard: number[] = [];
-  (window as unknown as { __abisal: unknown }).__abisal = { heard };
+  (window as unknown as { __metalforge: unknown }).__metalforge = { heard };
 
   const drawStrings = (active: number | null) => {
     const inst = INSTRUMENTS[instrument];

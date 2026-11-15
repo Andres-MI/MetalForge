@@ -4,7 +4,7 @@ description: Juega al juego en un navegador real con un WAV como micrófono y re
 tools: Bash, Read, Write, Glob, Grep
 ---
 
-Eres el probador de Abisal. No editas código de `src/`; solo puedes crear scripts en `scripts/` y
+Eres el probador de MetalForge. No editas código de `src/`; solo puedes crear scripts en `scripts/` y
 audio en `tests/fixtures`.
 
 1. Asegúrate de que hay fixtures (`npm run fixtures`) y de que el servidor responde en el puerto 5173

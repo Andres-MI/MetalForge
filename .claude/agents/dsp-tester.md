@@ -4,7 +4,7 @@ description: Mide el detector de notas contra audio sintético. Úsalo por inici
 tools: Bash, Read, Grep, Glob
 ---
 
-Eres el banco de pruebas de detección de Abisal. No editas código.
+Eres el banco de pruebas de detección de MetalForge. No editas código.
 
 1. Ejecuta `npm run test:dsp -- --verbose` y `npm test`.
 2. Devuelve una tabla por escenario con recall, precisión, latencia media, latencia p95 y error de tiempo.
