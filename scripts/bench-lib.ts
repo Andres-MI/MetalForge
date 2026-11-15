@@ -114,6 +114,27 @@ export function scenarios(): Scenario[] {
     const inst = INSTRUMENTS[instrument];
     const repeated = Array.from({ length: 24 }, (_, i) => ({ time: 0.3 + i * 0.3, midi: inst.openStrings[1] + 3, string: 0 }));
     out.push({ name: `${instrument} · misma nota repetida`, instrument, notes: repeated, duration: 0.3 + 24 * 0.3 + 1 });
+    // Open strings left ringing while the next one is plucked: the everyday case in string-crossing games.
+    const opens = inst.openStrings.map((midi, string) => ({ midi, string }));
+    const cycle = [...opens, ...opens.slice(1, -1).reverse()];
+    const arp = Array.from({ length: 40 }, (_, i) => ({ ...cycle[i % cycle.length], time: 0.3 + i * 0.5 }));
+    out.push({ name: `${instrument} · arpegio al aire dejando sonar`, instrument, notes: arp, duration: 0.3 + 40 * 0.5 + 1 });
+    // A high string plucked over a ringing low one whose harmonics coincide with it, and string skips.
+    const lo = opens[0];
+    const hi = opens[opens.length - 1];
+    const skips: typeof arp = [];
+    for (let i = 0; i < 12; i++) {
+      const a = i % 2 ? opens[1] : lo;
+      const b = i % 3 ? hi : opens[opens.length - 2];
+      skips.push({ ...a, time: 0.3 + i * 1.2 }, { ...b, time: 0.3 + i * 1.2 + 0.6 });
+    }
+    out.push({ name: `${instrument} · aguda sobre grave que suena`, instrument, notes: skips, duration: 0.3 + 12 * 1.2 + 1 });
+    out.push({
+      name: `${instrument} · aguda suave sobre grave fuerte`,
+      instrument,
+      notes: skips.map((n, i) => ({ ...n, velocity: i % 2 ? 0.4 : 0.9 })),
+      duration: 0.3 + 12 * 1.2 + 1,
+    });
   }
   return out;
 }
