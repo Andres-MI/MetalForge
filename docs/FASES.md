@@ -8,7 +8,7 @@ código. Cada fase se cierra con `npm test`, los agentes indicados, `/code-revie
 | 0 | Base, modelo, detección, banco de pruebas, afinador | dsp-tester | Hecha |
 | 1 | Motor de píxel, salón recreativo, perfil y calibración | pixel-artist, playtester | Hecha |
 | 2 | Motor de ejercicios, puntuación y dominio | pedagogo, dsp-tester | Hecha |
-| 3 | Ritmo: Pulso y Salto | playtester, pedagogo | Pulso hecho; Salto en curso |
+| 3 | Ritmo: Pulso y Salto | playtester, pedagogo | Hecha |
 | 4 | Trastes: Luciérnagas y Ninja | playtester, pedagogo, pixel-artist | |
 | 5 | Cuerdas: Telar y Portero | playtester, pedagogo, pixel-artist | |
 | 6 | Acordes: Forja y Hechicero | dsp-tester, playtester, pixel-artist | |
