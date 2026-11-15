@@ -100,6 +100,40 @@ const JELLY_B: Frame = [
   '................',
 ];
 
+
+// ---- Salto (arcade rhythm runner) ----
+// The runner is an axolotl seen from the side, facing right: three gill fronds, round head, short legs.
+// Body (rows 0..10) is shared; each pose adds its 5 rows of legs.
+const AXO_BODY: Frame = [
+  '................',
+  '......m..m......',
+  '.....mm.mm......',
+  '.....mmkmmkkkk..',
+  '....kkvvvvvvvvk.',
+  '..kkvvvvvvvvfkvk',
+  '.kvvvvvvvvvvvvvk',
+  'kvvvvvvvvvvvvmvk',
+  'kvvvvvvvvvvvvkk.',
+  '.kkvvccccccvvk..',
+  '..kkkkkkkkkkk...',
+];
+const EMPTY16 = '................';
+const axo = (legs: string[]): Frame => [...AXO_BODY, ...legs, ...repeat(EMPTY16, 5 - legs.length)];
+const AXO_RUN_A = axo(['..kvvk....kvvk..', '..kvk......kvk..', '.kvk........kvk.', '.kkk........kkk.']);
+const AXO_RUN_B = axo(['...kvvk...kvvk..', '...kkkk...kkkk..']);
+const AXO_RUN_C = axo(['...kvvk..kvvk...', '....kvk..kvk....', '.....kvk.kvk....', '.....kkk.kkk....']);
+const AXO_JUMP = axo(['.kvvvk...kvvvk..', '.kkkk....kkkk...']);
+/** Flat on the ground, eye shut, legs out, sparks over the head. */
+const axoDown = (sparks: string[]): Frame => [
+  ...sparks,
+  ...AXO_BODY.slice(1).map((row, i) => (i === 4 ? row.replace('fk', 'kk') : row)),
+  'kvvk........kvvk',
+  'kkkk........kkkk',
+  EMPTY16,
+];
+const AXO_DOWN_A = axoDown(['..f.........f...', '......f.........', EMPTY16]);
+const AXO_DOWN_B = axoDown(['.....f......f...', '..f.......f.....', EMPTY16]);
+
 const icon = (rows: string[]): Frame => rows;
 
 export const SPRITES: Record<string, SpriteDef> = {
@@ -132,6 +166,50 @@ export const SPRITES: Record<string, SpriteDef> = {
   lock: {
     frames: [['..xxxx..', '.x....x.', '.x....x.', 'xxxxxxxx', 'xxxxxxxx', 'xxx..xxx', 'xxxxxxxx', 'xxxxxxxx']],
     legend: { x: 'dim' },
+  },
+  // Salto: runner poses, obstacles, ground and hearts.
+  'runner-run': {
+    frames: [AXO_RUN_A, AXO_RUN_B, AXO_RUN_C, AXO_RUN_B],
+    legend: { k: 'abyss', v: 'violet', m: 'magenta', f: 'foam', c: 'cyan' },
+    fps: 10,
+  },
+  'runner-jump': {
+    frames: [AXO_JUMP],
+    legend: { k: 'abyss', v: 'violet', m: 'magenta', f: 'foam', c: 'cyan' },
+  },
+  'runner-stumble': {
+    frames: [AXO_DOWN_A, AXO_DOWN_B],
+    legend: { k: 'abyss', v: 'violet', m: 'magenta', f: 'foam', c: 'cyan' },
+    fps: 6,
+  },
+  'obst-coral': {
+    frames: [['m..m..m.', 'm..m..mf', '.m.m.m..', '.m.mmm..', 'f.mmm...', '.mmmm...', '...mm...', '..vvvv..']],
+    legend: { m: 'magenta', f: 'foam', v: 'violet' },
+  },
+  'obst-urchin': {
+    frames: [['a..aa..a', '.a.aa.a.', '..aaaa..', 'aaaffaaa', 'aaaaaaaa', '..aaaa..', '.a.aa.a.', 'a..aa..a']],
+    legend: { a: 'amber', f: 'foam' },
+  },
+  // A hole in the ground: drawn over the ground tiles (see scenes/salto.ts).
+  'obst-pit': {
+    frames: [['lkkkkkkl', 'lkkkkkkl', '.kkckkk.', '.kkkkkk.', '.kkkkck.', '.kkkkkk.', '.kckkkk.', '.kkkkkk.']],
+    legend: { k: 'abyss', l: 'lime', c: 'cyan' },
+  },
+  'ground-top': {
+    frames: [['dddddddd', 'wwwwwwww', 'wpwwwwpw', 'wwwwwwww', 'wwpwwwpw', 'pwwwpwww', 'pppppppp', 'pppwpppp']],
+    legend: { d: 'dim', w: 'water', p: 'deep' },
+  },
+  'ground-fill': {
+    frames: [['pppppppp', 'ppwppppp', 'pppppppp', 'pppppppp', 'pppppwpp', 'pppppppp', 'pwpppppp', 'pppppppp']],
+    legend: { w: 'water', p: 'deep' },
+  },
+  heart: {
+    frames: [['.mm..mm.', 'mmmmmmmm', 'mfmmmmmm', 'mmmmmmmm', '.mmmmmm.', '..mmmm..', '...mm...', '........']],
+    legend: { m: 'magenta', f: 'foam' },
+  },
+  'heart-empty': {
+    frames: [['.dd..dd.', 'd..dd..d', 'd......d', 'd......d', '.d....d.', '..d..d..', '...dd...', '........']],
+    legend: { d: 'dim' },
   },
   // Cabinet screen icons: `x` takes the cabinet's accent colour.
   'icon-pulse': {
