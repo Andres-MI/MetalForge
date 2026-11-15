@@ -6,8 +6,8 @@ código. Cada fase se cierra con `npm test`, los agentes indicados, `/code-revie
 | Fase | Contenido | Agentes al cerrar | Estado |
 |---|---|---|---|
 | 0 | Base, modelo, detección, banco de pruebas, afinador | dsp-tester | Hecha |
-| 1 | Motor de píxel, salón recreativo, perfil y calibración | pixel-artist, playtester | |
-| 2 | Motor de ejercicios, puntuación y dominio | pedagogo, dsp-tester | |
+| 1 | Motor de píxel, salón recreativo, perfil y calibración | pixel-artist, playtester | En curso |
+| 2 | Motor de ejercicios, puntuación y dominio | pedagogo, dsp-tester | En curso |
 | 3 | Ritmo: Pulso y Salto | playtester, pedagogo | |
 | 4 | Trastes: Luciérnagas y Ninja | playtester, pedagogo, pixel-artist | |
 | 5 | Cuerdas: Telar y Portero | playtester, pedagogo, pixel-artist | |
@@ -16,6 +16,63 @@ código. Cada fase se cierra con `npm test`, los agentes indicados, `/code-revie
 | 8 | Curso: módulos, sondeo, repaso diario, jefes, Turbo | pedagogo, playtester | |
 | 9 | Segunda tanda de juegos | todos | |
 | 10 | Canciones desde Guitar Pro | dsp-tester, playtester | |
+
+## Cómo se reparte el trabajo
+
+La sesión principal dirige: decide el alcance de cada fase, escribe los encargos, revisa lo que
+vuelve, lo integra en `main` y lo sube. La construcción la hacen agentes con un modelo más ligero
+(Sonnet), cada uno en su copia de trabajo de git para no pisarse.
+
+| Tipo de tarea | Quién |
+|---|---|
+| Diseño de la fase, contratos entre módulos, revisión e integración | Sesión principal |
+| Detección de audio y verificación de acordes (lo más delicado) | Sesión principal, con `dsp-tester` |
+| Motor visual, escenas, juegos concretos | Agente Sonnet por juego o por pareja |
+| Generadores, puntuación y progreso (lógica pura con pruebas) | Agente Sonnet |
+| Sprites | `pixel-artist` (Sonnet) |
+| Pruebas en navegador y revisión de capturas | `playtester` (Sonnet) |
+| Revisión didáctica | `pedagogo` (Sonnet) |
+
+Reglas para lanzar agentes en paralelo:
+
+- Cada agente recibe una lista de carpetas que son suyas y otra que no puede tocar.
+- Los contratos compartidos (`src/model/`, la interfaz común de juego) se fijan antes de repartir.
+- Cada agente usa su propio puerto para el servidor de desarrollo.
+- Ningún agente sube a GitHub: hace commits en su rama y la sesión principal integra.
+- Todo encargo termina con criterios comprobables y un informe con cifras reales.
+
+## Qué se puede hacer a la vez
+
+| Bloque | Fases | Depende de |
+|---|---|---|
+| A | 1 (motor visual) y 2 (ejercicios y puntuación) en paralelo | 0 |
+| B | 3 (ritmo): fija la interfaz común de juego | A |
+| C | 4 (trastes), 5 (cuerdas) y 7 (escalas) en paralelo, un agente por pareja | B |
+| D | 6 (acordes): primero la detección, luego la pareja de juegos | B |
+| E | 8 (curso completo) | C y D |
+| F | 9 (segunda tanda), cuatro parejas en paralelo | E |
+| G | 10 (canciones) | E |
+
+## Desglose por fase
+
+**Fase 1** — motor Phaser a 320x180; sistema de sprites y fuente de mapa de bits; fondo de acuario;
+salón con máquinas; perfil en IndexedDB; afinador como escena. Queda para un segundo paso: mover la
+detección a un Web Worker y la pantalla de calibración (necesita el metrónomo de la fase 3).
+
+**Fase 2** — generadores de las cinco habilidades de la primera tanda con diez niveles; juez con y
+sin reloj; dominio con repetición espaciada; jugador robot para probar de extremo a extremo.
+
+**Fase 3** — reloj de juego y metrónomo; interfaz común de juego; Pulso; Salto; pantalla de
+resultados; calibración de latencia; detección en un Web Worker.
+
+**Fases 4, 5 y 7** — por pareja: escena de aprender, escena arcade, sprites, dificultad adaptable,
+prueba en navegador con un WAV bueno y otro malo, revisión didáctica.
+
+**Fase 6** — verificación espectral de acordes y ampliación del banco; después Forja y Hechicero;
+versión de bajo con fundamental, quinta y octava.
+
+**Fase 8** — curso como datos para guitarra y bajo; sondeo de nivel; repaso diario; jefes; Turbo;
+salón que refleja el progreso.
 
 Prueba tú con el instrumento real al cerrar las fases 0, 3, 6 y 7: la síntesis no sustituye a una
 guitarra de verdad. Lo que notes ("la sexta al aire falla", "el Fa con cejilla no puntúa") es el
