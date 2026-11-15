@@ -8,6 +8,9 @@
  *
  * Life cycle: `new GameSession(...)` -> `on(...)` -> `start()` -> events -> `finished` (mastery saved) ->
  * `dispose()` (always call it when the scene shuts down; it closes the input).
+ *
+ * Games made of several rounds (Salto) chain sessions on the SAME input: `release()` the finished or abandoned
+ * one (it keeps the input open) and `spawn(exercise)` the next; only the last one is `dispose()`d.
  */
 import type { DetectorEvent } from '../detection/detector';
 import type { Exercise } from '../model/exercise';
@@ -78,8 +81,11 @@ export class GameSession {
   private _finished = false;
   private _summary: RoundSummary | null = null;
   private disposed = false;
+  private released = false;
+  private readonly opts: SessionOptions;
 
   constructor(opts: SessionOptions) {
+    this.opts = opts;
     this.exercise = opts.exercise;
     this.input = opts.input;
     this.latency = opts.latencyOffset ?? 0;
@@ -145,16 +151,37 @@ export class GameSession {
     return this.clock.timeToBeat(this.clock.now() - this.input.outputLatency());
   }
 
-  /** Aborts the round without saving anything. */
-  dispose(): void {
-    if (this.disposed) return;
-    this.disposed = true;
+  /**
+   * A new, not started session on the same input, latency, mastery store and metronome setting (as it is now),
+   * for the next round of a multi-round game. `release()` this one first.
+   */
+  spawn(exercise: Exercise, over: Partial<SessionOptions> = {}): GameSession {
+    return new GameSession({
+      ...this.opts,
+      metronome: { on: !this.metronome.isMuted, volume: this.metronome.level },
+      ...over,
+      exercise,
+      input: this.input,
+    });
+  }
+
+  /** Stops this round (nothing more is judged or saved) but leaves the input open for a spawned session. */
+  release(): void {
+    if (this.released) return;
+    this.released = true;
     this.metronome.stop();
     this.clock.stop();
     if (this.timer !== null) clearInterval(this.timer);
     this.timer = null;
     this.unsubscribe?.();
     this.unsubscribe = null;
+  }
+
+  /** Aborts the round without saving anything and closes the input. */
+  dispose(): void {
+    if (this.disposed) return;
+    this.disposed = true;
+    this.release();
     this.input.setExpected?.([]);
     this.input.stop();
   }

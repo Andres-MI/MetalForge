@@ -33,3 +33,41 @@ export function profileMasteryStore(store: ProfileStore, instrument: InstrumentI
     },
   };
 }
+
+/** Best arcade run per game+level, under the key `arcadeBest` of the same blob: `{ "salto:3": { score, bestCombo } }`. */
+export interface ArcadeBest {
+  score: number;
+  bestCombo: number;
+}
+
+const bestKey = (gameId: string, level: number) => `${gameId}:${level}`;
+
+export function readBest(blob: unknown, gameId: string, level: number): ArcadeBest | null {
+  const all = blob && typeof blob === 'object' ? (blob as { arcadeBest?: unknown }).arcadeBest : undefined;
+  const e = all && typeof all === 'object' ? (all as Record<string, unknown>)[bestKey(gameId, level)] : undefined;
+  if (!e || typeof e !== 'object') return null;
+  const { score, bestCombo } = e as Record<string, unknown>;
+  if (typeof score !== 'number' || !Number.isFinite(score)) return null;
+  return { score, bestCombo: typeof bestCombo === 'number' && Number.isFinite(bestCombo) ? bestCombo : 0 };
+}
+
+/** Returns the blob with the run stored if it beats the stored score (other keys untouched), and what was there. */
+export function writeBest(blob: unknown, gameId: string, level: number, run: ArcadeBest): { blob: Record<string, unknown>; previousBest: number; newBest: boolean } {
+  const base = blob && typeof blob === 'object' ? { ...(blob as Record<string, unknown>) } : {};
+  const previous = readBest(base, gameId, level);
+  const previousBest = previous?.score ?? 0;
+  const newBest = run.score > previousBest;
+  if (newBest) {
+    const all = base.arcadeBest && typeof base.arcadeBest === 'object' ? { ...(base.arcadeBest as Record<string, unknown>) } : {};
+    all[bestKey(gameId, level)] = { score: run.score, bestCombo: run.bestCombo };
+    base.arcadeBest = all;
+  }
+  return { blob: base, previousBest, newBest };
+}
+
+/** Stores the run in the instrument's progress blob when it is a new best. */
+export async function saveArcadeBest(store: ProfileStore, instrument: InstrumentId, gameId: string, level: number, run: ArcadeBest): Promise<{ previousBest: number; newBest: boolean }> {
+  const r = writeBest(await store.getProgress(instrument), gameId, level, run);
+  if (r.newBest) await store.saveProgress(instrument, r.blob);
+  return { previousBest: r.previousBest, newBest: r.newBest };
+}

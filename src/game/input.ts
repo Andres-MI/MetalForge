@@ -29,6 +29,7 @@ export interface GameInput extends TimeSource {
 
 export async function openAudioInput(inst: Instrument): Promise<GameInput> {
   const listeners = new Set<InputListener>();
+  let stopped = false;
   let buffer: DetectorEvent[] = [];
   const handle: InputHandle = await startInput(
     inst,
@@ -54,7 +55,12 @@ export async function openAudioInput(inst: Instrument): Promise<GameInput> {
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
-    stop: () => handle.stop(),
+    // Idempotent: the sessions of a multi-round game share one input and each may close it.
+    stop: () => {
+      if (stopped) return;
+      stopped = true;
+      handle.stop();
+    },
   };
 }
 
@@ -95,6 +101,11 @@ export class FakeInput implements GameInput {
   inject(events: DetectorEvent[]): void {
     this.pending.push(...events);
     this.pending.sort((a, b) => deliveredAt(a) - deliveredAt(b));
+  }
+
+  /** Forgets queued events not delivered yet (a round was abandoned). */
+  clearPending(): void {
+    this.pending = [];
   }
 
   /** Moves virtual time forward (never back), delivering what is due. */
