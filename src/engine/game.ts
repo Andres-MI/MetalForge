@@ -1,5 +1,6 @@
 /** Phaser setup: 320x180 internal resolution, integer zoom, no smoothing, centred on the page. */
 import Phaser from 'phaser';
+import { installKeyboardFix } from './keyboardFix';
 import { PALETTE } from '../ui/palette';
 import { H, W } from './kit';
 
@@ -9,6 +10,7 @@ export function integerZoom(width: number, height: number): number {
 }
 
 export function createGame(parent: HTMLElement, scenes: Phaser.Types.Scenes.SceneType[]): Phaser.Game {
+  installKeyboardFix();
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent,

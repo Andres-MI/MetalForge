@@ -45,7 +45,7 @@ async function toLevelSelect(page) {
     if (scenario === 'perfect') await shot(page, `01-modo-${instrument}`);
     await page.keyboard.press('Enter'); // Aprender
     await waitScene(page, 'levelselect');
-    for (let i = 0; i < 2; i++) { await page.keyboard.press('ArrowRight'); await page.waitForTimeout(150); } // level 3 (Phaser double-counts keys pressed within one frame)
+    for (let i = 0; i < 2; i++) { await page.keyboard.press('ArrowRight'); await page.waitForTimeout(150); } // level 3
     await page.waitForTimeout(150);
     if (scenario === 'perfect') await shot(page, `02-nivel-${instrument}`);
     await page.keyboard.press('Enter');
