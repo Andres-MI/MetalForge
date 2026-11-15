@@ -5,6 +5,7 @@ import { drawText, placeText } from '../art/text';
 import { addBackground, enterScene, H, profileStore, W } from '../engine/kit';
 import { hooks } from '../engine/hooks';
 import { paletteInt } from '../ui/palette';
+import { gameFor } from '../game/registry';
 import { HUB_GAMES, SHORT_LABEL, type HubGame } from './hubData';
 
 const PITCH = 42;
@@ -62,7 +63,7 @@ export class HubScene extends Phaser.Scene {
     this.skill = drawText(this, 12, PANEL_Y + 25, '', { color: 'dim', depth: 8 });
     this.desc = drawText(this, 12, PANEL_Y + 35, '', { color: 'foam', depth: 8 });
     this.add.rectangle(0, PANEL_Y - 14, W, 12, paletteInt('abyss'), 0.7).setOrigin(0, 0).setDepth(7);
-    drawText(this, W / 2, PANEL_Y - 10, '← → elegir   Enter entrar   I instrumento   B fondo', { color: 'dim', align: 'center', depth: 8 });
+    drawText(this, W / 2, PANEL_Y - 10, '←→ elegir  Enter  I instr.  B fondo  C calibrar', { color: 'dim', align: 'center', depth: 8 });
 
     const kb = this.input.keyboard!;
     kb.on('keydown-LEFT', () => this.select((this.index + HUB_GAMES.length - 1) % HUB_GAMES.length));
@@ -70,6 +71,7 @@ export class HubScene extends Phaser.Scene {
     kb.on('keydown-ENTER', () => this.activate());
     kb.on('keydown-SPACE', () => this.activate());
     kb.on('keydown-I', () => this.scene.start('picker'));
+    kb.on('keydown-C', () => this.scene.start('calibration', {}));
     kb.on('keydown-B', () => {
       bg.setEnabled(!bg.isEnabled);
       hooks.backgroundEffects = bg.isEnabled;
@@ -162,7 +164,8 @@ export class HubScene extends Phaser.Scene {
       this.cameras.main.shake(120, 0.004);
       return;
     }
-    if (game.scene) this.scene.start(game.scene);
+    if (gameFor(game.id, 'learn') || gameFor(game.id, 'practice')) this.scene.start('modechoice', { id: game.id });
+    else if (game.scene) this.scene.start(game.scene);
     else this.scene.start('soon', { id: game.id });
   }
 }
