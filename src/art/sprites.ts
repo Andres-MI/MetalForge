@@ -4,6 +4,7 @@
  * Original designs, replaceable one by one: only the name and the size are a contract.
  */
 import type { Frame, SpriteDef } from './pixels';
+import { FRETS_SPRITES } from './sprites-frets';
 
 const repeat = (row: string, n: number): string[] => Array.from({ length: n }, () => row);
 
@@ -137,6 +138,7 @@ const AXO_DOWN_B = axoDown(['.....f......f...', '..f.......f.....', EMPTY16]);
 const icon = (rows: string[]): Frame => rows;
 
 export const SPRITES: Record<string, SpriteDef> = {
+  ...FRETS_SPRITES,
   cabinet: {
     frames: [CABINET],
     legend: { k: 'abyss', w: 'water', d: 'deep', a: 'cyan', f: 'foam', e: 'dim' },
