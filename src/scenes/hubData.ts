@@ -24,7 +24,7 @@ export const HUB_GAMES: HubGame[] = [
   { id: 'fireflies', title: 'Luciérnagas / Ninja', skill: 'Trastes en una cuerda', description: 'Toca el traste donde se enciende la luz.', unlocked: true, accent: 'lime', icon: 'icon-fireflies' },
   { id: 'loom', title: 'Telar / Portero', skill: 'Cambio de cuerda', description: 'Salta de cuerda en cuerda sin perder el hilo.', unlocked: true, accent: 'blue', icon: 'icon-loom' },
   { id: 'forge', title: 'Forja / Hechicero', skill: 'Acordes y cambios', description: 'Forma el acorde y rasguéalo hasta que suene.', unlocked: false, accent: 'amber', icon: 'icon-forge' },
-  { id: 'climb', title: 'Escalada / Torre', skill: 'Escalas', description: 'Sube la pared tocando la escala en orden.', unlocked: false, accent: 'violet', icon: 'icon-climb' },
+  { id: 'climb', title: 'Escalada / Torre', skill: 'Escalas', description: 'Sube la pared tocando la escala en orden.', unlocked: true, accent: 'violet', icon: 'icon-climb' },
   { id: 'tuner', title: 'Afinador', skill: 'Herramienta', description: 'Afina cada cuerda con la aguja de cents.', unlocked: true, scene: 'tuner', accent: 'magenta', icon: 'icon-fork' },
   { id: 'turbo', title: 'Turbo', skill: 'Velocidad', description: 'El tempo sube en bucle hasta que caigas.', unlocked: false, accent: 'amber', icon: 'icon-bolt' },
 ];

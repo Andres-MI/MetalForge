@@ -27,6 +27,10 @@ de construcción y sus prompts en `docs/FASES.md`.
   erróneas y salto) y Ninja (perfecta, trastes erróneos, en silencio → reinicio más lento) con la entrada falsa; sale con
   código 1 si algo falla; capturas `test-results/frets-*`. `npx tsx scripts/make-frets-wav.ts <wav>` +
   `node scripts/frets-audio.cjs <wav>` — Luciérnagas con las notas del ejercicio sintetizadas como micrófono
+- `node scripts/scales-fake.cjs [url] [guitar|bass4|bass5] [nivelE] [nivelT] [climb|tower]` — juega Escalada (tirada perfecta,
+  ronda libre, notas erróneas, nivel 10 a tempo) y Torre (perfecta con las dos salas de guardián, notas erróneas, en silencio →
+  reinicio más lento → resultados, nivel 10) con la entrada falsa; sale con código 1 si algo falla; capturas
+  `test-results/scales-*`. `npx tsx scripts/make-scales-wav.ts <wav>` + `node scripts/scales-audio.cjs <wav>` — Escalada con audio real
 - `node scripts/keys-rapid.cjs [url]` — ráfagas de teclas sin pausa en el salón y el selector de nivel: cada pulsación
   debe contar exactamente una vez
 - `npx tsx scripts/make-calibration-wav.ts <wav> [lagMs]` y `node scripts/calibrate.cjs <wav> [url] [etiqueta]` — WAV de
@@ -84,6 +88,12 @@ de construcción y sus prompts en `docs/FASES.md`.
   `frets/board.ts` es la disposición pura del mástil que comparten Luciérnagas y Ninja (`scenes/fretsDraw.ts` lo dibuja);
   `ninja/` guarda las reglas del arcade de trastes: `state.ts` (`NinjaRun`, `planWave`: escudos = objetivo repetido) y
   `pace.ts` (tiempo límite por enemigo, adaptativo). `hearNote.ts` suena una nota con el sintetizador (tecla H).
+  `scales/` y `tower/` son de Escalada (`scenes/climb.ts`, aprender) y Torre (`scenes/tower.ts`, arcade; ganchos `climb` y `tower`):
+  `scales/info.ts` lee escala/fundamental/posición del propio `Exercise` y trae la ruta de presas, los tramos de subida y bajada y
+  `FreeLog` (notas visitadas del modo libre); `scales/board.ts` da el mástil de una posición (mismo mapa que Luciérnagas) e
+  `improvisation` (la variante libre sin reloj); `scales/backing.ts` sintetiza el acompañamiento del jefe y «oír la escala».
+  `tower/state.ts` (`TowerRun`: agua, corazones, racha, pisos), `pace.ts` (velocidad del agua, bajo −20 %) y `boss.ts` (`BossFight`).
+  `scenes/scalesDraw.ts` dibuja el mástil de la posición; sprites en `src/art/sprites-scales.ts`.
 - `tests/helpers/robot.ts` — jugador robot: sintetiza el ejercicio con errores inyectables, lo pasa por el
   detector real y el `Judge`.
 
