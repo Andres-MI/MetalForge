@@ -134,6 +134,12 @@ export class GameSession {
     this.tick();
   }
 
+  /** Untimed exercises: gives up on the current target (a miss) and shows the next one. */
+  skipCurrent(): void {
+    this.handle(this.judge.skipCurrent());
+    this.tick();
+  }
+
   pause(): void {
     this.clock.pause();
     this.metronome.stop();

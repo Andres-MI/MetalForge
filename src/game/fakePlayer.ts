@@ -62,6 +62,8 @@ export interface FakeControl {
   /** Injects a pluck at a beat (+ms) without advancing. */
   pluckAt(beat: number, offsetMs?: number): void;
   bpm(): number;
+  /** Injects a pluck right now (+ `afterSec`) with a pitch, without advancing: advance ~0.1 s afterwards so it is heard. */
+  pluck(midi?: number, afterSec?: number): void;
 }
 
 export function makeFakeControl(session: GameSession, fake: FakeInput): FakeControl {
@@ -77,5 +79,6 @@ export function makeFakeControl(session: GameSession, fake: FakeInput): FakeCont
     targetBeats: () => session.exercise.targets.map((t) => t.beat ?? 0),
     pluckAt: (beat, ms = 0) => fake.inject(fakePluck(session.clock.beatToTime(beat) + ms / 1000)),
     bpm: () => session.clock.bpm,
+    pluck: (midi, afterSec = 0) => fake.inject(fakePluck(fake.now() + afterSec, midi)),
   };
 }
