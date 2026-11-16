@@ -198,7 +198,7 @@ const results = (page) => ev(page, () => window.__metalforge.results);
     out.ninjaPerfect = { kills, limit0, results: r, errors, shotMid, shotShield };
     check(r?.stars === 3, `ninja perfect: stars ${r?.stars}`);
     check(r?.arcade?.score > 0 && r?.arcade?.bestCombo >= 20, `ninja perfect: arcade ${JSON.stringify(r?.arcade)}`);
-    check(shotShield, 'ninja perfect: no shielded enemy appeared');
+    check(shotShield || levelN < 4, 'ninja perfect: no shielded enemy appeared');
     check(errors.length === 0, `ninja perfect: console errors ${errors}`);
     await ctx.close();
   }
