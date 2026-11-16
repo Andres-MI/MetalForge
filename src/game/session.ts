@@ -134,6 +134,18 @@ export class GameSession {
     this.tick();
   }
 
+  /** Untimed: gives up on the current target (counts as a miss) so the next one appears. No effect in timed exercises. */
+  skipCurrent(): void {
+    if (this._finished || this.clock.state !== 'running') return;
+    this.handle(this.judge.skipCurrent());
+    this.tick();
+  }
+
+  /** Index of the target waiting for the player (untimed) or the first unresolved one (timed). */
+  get currentIndex(): number {
+    return this.judge.currentIndex;
+  }
+
   pause(): void {
     this.clock.pause();
     this.metronome.stop();

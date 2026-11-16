@@ -4,6 +4,8 @@ import type { GameDef } from './types';
 export const GAMES: Record<string, GameDef> = {
   pulso: { id: 'pulso', title: 'Pulso', skill: 'rhythm', mode: 'learn', scene: 'pulso', accent: 'cyan', length: 16, cabinet: 'pulse' },
   salto: { id: 'salto', title: 'Salto', skill: 'rhythm', mode: 'practice', scene: 'salto', accent: 'cyan', length: 16, cabinet: 'pulse' },
+  telar: { id: 'telar', title: 'Telar', skill: 'strings', mode: 'learn', scene: 'telar', accent: 'blue', length: 16, cabinet: 'loom' },
+  portero: { id: 'portero', title: 'Portero', skill: 'strings', mode: 'practice', scene: 'portero', accent: 'blue', length: 16, cabinet: 'loom' },
 };
 
 /** The game of a cabinet for a mode, if any. */

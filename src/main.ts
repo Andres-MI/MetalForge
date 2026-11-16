@@ -12,6 +12,8 @@ import { PulsoScene } from './scenes/pulso';
 import { SaltoScene } from './scenes/salto';
 import { ResultsScene } from './scenes/results';
 import { CalibrationScene } from './scenes/calibration';
+import { TelarScene } from './scenes/telar';
+import { PorteroScene } from './scenes/portero';
 
 installHooks();
-createGame(document.getElementById('app')!, [BootScene, PickerScene, HubScene, SoonScene, TunerScene, ModeChoiceScene, LevelSelectScene, PulsoScene, SaltoScene, ResultsScene, CalibrationScene]);
+createGame(document.getElementById('app')!, [BootScene, PickerScene, HubScene, SoonScene, TunerScene, ModeChoiceScene, LevelSelectScene, PulsoScene, SaltoScene, ResultsScene, CalibrationScene, TelarScene, PorteroScene]);

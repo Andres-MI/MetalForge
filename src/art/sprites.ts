@@ -244,3 +244,7 @@ export const SPRITES: Record<string, SpriteDef> = {
 
 /** Names of every icon sprite (they get one texture per accent colour, see art/textures.ts). */
 export const ICON_NAMES = Object.keys(SPRITES).filter((n) => n.startsWith('icon-'));
+
+// Telar and Portero (strings skill).
+import { STRINGS_SPRITES } from './sprites-strings';
+Object.assign(SPRITES, STRINGS_SPRITES);
