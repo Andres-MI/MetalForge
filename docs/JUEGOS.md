@@ -70,6 +70,18 @@ Con reloj (niveles 7+) coloca los tiros con `session.beat()`. Reglas en `src/gam
 - Probar: `fake.pluck(midi)` mete una nota en el instante virtual actual (avanza ~0,1 s para que se oiga);
   `__metalforge.fireflies` / `__metalforge.ninja` dan el objetivo vivo (`midi`, traste, cuerda). Ver `scripts/frets-fake.cjs`.
 
+## Escalas (ejemplo: Escalada y Torre)
+
+- La variante libre (`generate('scales', { free: true })`, objetivos `anyOf`) se pasa por `improvisation(free, bpm?)`
+  (`src/game/scales/board.ts`): mismas notas y posición pero sin reloj, también en el nivel 10. Con un reloj de metrónomo (`bpm`)
+  el compás de la sala de jefe sale de `session.beat()`; el sonido de acompañamiento se programa en `session.clock.beat0Time`.
+- Una ronda que no debe contar como dominio (ronda libre, sala de jefe) se arranca con
+  `session.spawn(ejercicio, { metronome: { on: false }, mastery: undefined })`.
+- Con `exercise.timed === false` el metrónomo de la sesión sigue sonando a 60 bpm si la entrada es real: un juego sin reloj
+  llama a `session.metronome.setMuted(true)` antes de `beginGame` (Escalada y Torre lo hacen).
+- Escalada usa `beginGame(..., { manual: true })` para ofrecer la ronda libre tras la tirada ordenada y abre los resultados con
+  el resumen de la tirada ordenada. Torre encadena pisos y salas de jefe con `release`/`spawn` desde `update` (cola `pending`).
+
 ## Notas esperadas
 
 `GameSession.start()` llama a `input.setExpected(midis)` con las notas del ejercicio (`note` → su midi, `anyOf` y
