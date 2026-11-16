@@ -86,3 +86,10 @@ describe('bitmap font', () => {
     expect(wrapText('uno dos tres cuatro', 8)).toEqual(['uno dos', 'tres', 'cuatro']);
   });
 });
+
+describe('strings skill sprites', () => {
+  it('characters are 16x16, objects 8x8', () => {
+    for (const n of ['keeper-stand', 'keeper-dive', 'shooter-aim', 'shooter-kick']) for (const f of SPRITES[n].frames) expect([f[0].length, f.length]).toEqual([16, 16]);
+    for (const n of ['ball', 'weaver']) for (const f of SPRITES[n].frames) expect([f[0].length, f.length]).toEqual([8, 8]);
+  });
+});

@@ -30,6 +30,50 @@ export interface SaltoHook {
   over: boolean;
 }
 
+/** Telar (learn, strings) live state for automation. */
+export interface TelarHook {
+  /** Index of the knot waiting (untimed) or next to play (timed). */
+  current: number;
+  /** String index, MIDI and fret of each target. */
+  strings: number[];
+  midis: number[];
+  frets: number[];
+  /** True for the targets reached with a skip (an arc is drawn). */
+  skips: boolean[];
+  /** Thread the last wrong note was heard on (-1 none) and the text of the hint on screen ('' none). */
+  heardString: number;
+  hint: string;
+  /** Screen y of each thread, lowest-pitched first. */
+  threadY: number[];
+  over: boolean;
+}
+
+/** Portero (arcade, strings) live state for automation. */
+export interface PorteroHook {
+  round: number;
+  rounds: number;
+  attempt: number;
+  restarts: number;
+  /** Seconds per shot (untimed) or bpm (timed). */
+  pace: number;
+  timed: boolean;
+  hearts: number;
+  score: number;
+  combo: number;
+  bestCombo: number;
+  multiplier: number;
+  banner: string;
+  /** Strings and MIDI notes of the round's targets; `shot` is the one waiting; `deadline` its limit in clock seconds (untimed). */
+  strings: number[];
+  midis: number[];
+  shot: number;
+  deadline: number;
+  /** Targets of the current telegraph (two = a double shot). */
+  group: number[];
+  bands: number;
+  over: boolean;
+}
+
 export interface MetalforgeHooks {
   /** MIDI notes the detector reported as attacks, most recent last (the tuner scene fills it). */
   heard: number[];
@@ -58,6 +102,9 @@ export interface MetalforgeHooks {
   calibration: { offsetMs: number; spreadMs: number; used: number; matched: number; ok: boolean } | null;
   /** Audio chain diagnostics of the running input (null with a fake input). */
   audio: { lagMs: number; baseLatencyMs: number; outputLatencyMs: number; captureStart: number | null } | null;
+  /** Telar and Portero (strings) live state, or null outside them. */
+  telar: TelarHook | null;
+  portero: PorteroHook | null;
 }
 
 declare global {
@@ -79,6 +126,8 @@ export const hooks: MetalforgeHooks = {
   salto: null,
   calibration: null,
   audio: null,
+  telar: null,
+  portero: null,
 };
 
 export function installHooks(): void {

@@ -201,3 +201,33 @@ describe('Portero rules (pure)', () => {
     expect(run.failRound()).toEqual({ over: false, pace: 51 });
   });
 });
+
+import { fretWords, locateHeard, skipText, stringLabel, wrongHint } from '../src/game/strings';
+
+describe('strings helpers (pure)', () => {
+  it('locates a heard note on its string for every instrument and level, and names strings', () => {
+    for (const id of Object.keys(INSTRUMENTS) as InstrumentId[]) {
+      const inst = INSTRUMENTS[id];
+      inst.openStrings.forEach((open, s) => {
+        expect(locateHeard(id, 1, open)).toEqual({ string: s, fret: 0 });
+        expect(locateHeard(id, 4, open + 2)).toEqual({ string: s, fret: 2 });
+      });
+    }
+    expect(locateHeard('guitar', 1, 20)).toBeNull();
+    expect(stringLabel('guitar', 0)).toBe('6 Mi');
+    expect(stringLabel('bass4', 3)).toBe('1 Sol');
+    expect(stringLabel('bass5', 0)).toBe('5 Si');
+  });
+
+  it('hints say which string was heard and where to go', () => {
+    const t = { string: 3, fret: 0 };
+    expect(wrongHint('guitar', 1, t, 40)).toMatchObject({ direction: 1, distance: 3, heardString: 0 });
+    expect(wrongHint('guitar', 1, t, 40).text).toBe('Sonó la 6 Mi: ve a la 3 Sol ↑');
+    expect(wrongHint('guitar', 1, t, 64)).toMatchObject({ direction: -1, distance: 2 });
+    expect(wrongHint('guitar', 5, { string: 3, fret: 2 }, 55)).toMatchObject({ direction: 0, text: 'Cuerda correcta, pero toca traste 2' });
+    expect(fretWords(0)).toBe('al aire');
+    expect(skipText(0, 1)).toBeNull();
+    expect(skipText(0, 2)).toBe('Saltas 1 cuerda ↑');
+    expect(skipText(4, 0)).toBe('Saltas 3 cuerdas ↓');
+  });
+});
