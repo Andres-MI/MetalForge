@@ -115,6 +115,74 @@ export interface PorteroHook {
   over: boolean;
 }
 
+/** Escalada (learn, scales) live state for automation. */
+export interface ClimbHook {
+  /** 'run' = the ordered run, 'offer' = finished, waiting for Enter (free round) or R (results), 'free' = free round. */
+  phase: 'run' | 'offer' | 'free';
+  timed: boolean;
+  /** Target waiting (untimed) or next to play (timed), and the number of targets. */
+  index: number;
+  total: number;
+  /** The lit target: string index, fret and MIDI note (-1 when none). */
+  string: number;
+  fret: number;
+  midi: number;
+  /** Notes of the scale lit so far, number of different notes in the zone, and root notes drawn. */
+  lit: number;
+  scaleNotes: number;
+  /** MIDI of every note of the zone (the scale position on the board). */
+  scaleMidis: number[];
+  roots: number;
+  /** Text of the up/down hint on screen ('' when none) and where the last wrong note was drawn (fret or null). */
+  hint: string;
+  wrongFret: number | null;
+  /** Free round: different scale notes visited, notes outside the scale tried (MIDI), plays. */
+  visited: number;
+  outside: number[];
+  plays: number;
+  /** Text of the message line and of the sub line. */
+  msg: string;
+  sub: string;
+  /** Hold the climber is on (index of the target) and its screen position. */
+  climberHold: number;
+  /** True while the whole scale is being played back. */
+  listening: boolean;
+  over: boolean;
+}
+
+/** Torre (arcade, scales) live state for automation. */
+export interface TowerHook {
+  /** 'climb' = a floor, 'boss' = a guardian room (a banner may be on top of either, see `banner`). */
+  phase: 'climb' | 'boss';
+  timed: boolean;
+  floor: number;
+  floors: number;
+  attempt: number;
+  restarts: number;
+  hearts: number;
+  score: number;
+  combo: number;
+  bestCombo: number;
+  multiplier: number;
+  /** Water speed (platforms/second) or tempo (bpm) now, and the platforms between the hero and the water. */
+  pace: number;
+  gap: number;
+  /** Platform the hero stands on (index of the last reached target + 1), and the index of the target waiting. */
+  platform: number;
+  index: number;
+  total: number;
+  target: { string: number; fret: number; midi: number } | null;
+  invulnerable: boolean;
+  banner: string;
+  /** Boss room: health, bars, last damage and repeat streak; null outside it. */
+  boss: { hp: number; maxHp: number; bar: number; bars: number; lastDamage: number; repeat: number; defeated: boolean; strays: number } | null;
+  /** MIDI of every note of the floor's scale position. */
+  zone: number[];
+  floorsDone: number;
+  bossesDefeated: number;
+  over: boolean;
+}
+
 export interface MetalforgeHooks {
   /** MIDI notes the detector reported as attacks, most recent last (the tuner scene fills it). */
   heard: number[];
@@ -149,6 +217,9 @@ export interface MetalforgeHooks {
   /** Luciérnagas (learn) and Ninja (arcade) live state, or null outside them. */
   fireflies: FirefliesHook | null;
   ninja: NinjaHook | null;
+  /** Escalada (learn) and Torre (arcade) live state, or null outside them. */
+  climb: ClimbHook | null;
+  tower: TowerHook | null;
 }
 
 declare global {
@@ -174,6 +245,8 @@ export const hooks: MetalforgeHooks = {
   portero: null,
   fireflies: null,
   ninja: null,
+  climb: null,
+  tower: null,
 };
 
 export function installHooks(): void {

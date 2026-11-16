@@ -250,3 +250,7 @@ export const ICON_NAMES = Object.keys(SPRITES).filter((n) => n.startsWith('icon-
 // Telar and Portero (strings skill).
 import { STRINGS_SPRITES } from './sprites-strings';
 Object.assign(SPRITES, STRINGS_SPRITES);
+
+// Escalada and Torre (scales skill).
+import { SCALES_SPRITES } from './sprites-scales';
+Object.assign(SPRITES, SCALES_SPRITES);
