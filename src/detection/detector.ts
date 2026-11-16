@@ -7,9 +7,13 @@
  *  - note:  the pitch of that pluck, as soon as it is stable. `time` is the pluck, `emittedAt` is when
  *           we knew, so emittedAt - time is the detection latency.
  *  - pitch: periodic reading of the sustained pitch (tuner, bends).
+ *  - strum: only when chord candidates are set (`setChordCandidates`): after an attack, once ~230 ms of audio
+ *           have arrived, how clearly new energy appeared at each candidate note (see chord.ts). `time` is the
+ *           attack (same as its onset event), `emittedAt` when we knew.
  */
 import { fft, nextPow2 } from './fft';
 import { detectPitch } from './pitch';
+import { analyzeStrum, strumLayout, STRUM_PARAMS } from './chord';
 
 export interface DetectorOptions {
   sampleRate: number;
@@ -30,7 +34,8 @@ export interface DetectorOptions {
 export type DetectorEvent =
   | { type: 'onset'; time: number; rms: number }
   | { type: 'note'; time: number; emittedAt: number; freq: number; midi: number; clarity: number }
-  | { type: 'pitch'; time: number; freq: number; clarity: number; rms: number };
+  | { type: 'pitch'; time: number; freq: number; clarity: number; rms: number }
+  | { type: 'strum'; time: number; emittedAt: number; strengths: Record<number, number>; shadowed: number[] };
 
 export class Detector {
   private readonly o: Required<DetectorOptions>;
@@ -49,6 +54,11 @@ export class Detector {
   private readonly postMag: Float64Array;
   private hopCount = 0;
   private expectedMidis: number[] = [];
+  // Chord verification: its own ring (the main one is too short for a 200 ms window plus the audio before it).
+  private readonly chordRing: Float32Array;
+  private readonly chordMask: number;
+  private chordCandidates: { required: number[]; contradicting: number[] } | null = null;
+  private strum: { at: number; required: number[]; contradicting: number[] } | null = null;
 
   constructor(opts: DetectorOptions) {
     this.o = {
@@ -66,6 +76,9 @@ export class Detector {
     this.im = new Float64Array(this.fftSize);
     this.preMag = new Float64Array(this.fftSize / 2);
     this.postMag = new Float64Array(this.fftSize / 2);
+    const lay = strumLayout(this.o.sampleRate);
+    this.chordRing = new Float32Array(nextPow2(lay.before + lay.end + 2 * this.o.hop));
+    this.chordMask = this.chordRing.length - 1;
   }
 
   /** Hann-windowed magnitude spectrum of `n` samples, normalised so a steady tone reads the same at any n. */
@@ -193,12 +206,26 @@ export class Detector {
     this.expectedMidis = [...new Set(midis)];
   }
 
+  /**
+   * Notes to check after every attack: the chord's tones (`required`) plus the notes that would make it another
+   * chord (`contradicting`). While there are any, each attack produces one `strum` event with a strength for every
+   * one of them. Empty clears it. The set is read when the attack happens, so changing it later does not affect
+   * a strum already under analysis.
+   */
+  setChordCandidates(required: Iterable<number>, contradicting: Iterable<number> = []): void {
+    const req = [...new Set(required)];
+    const con = [...new Set(contradicting)].filter((m) => !req.includes(m));
+    this.chordCandidates = req.length ? { required: req, contradicting: con } : null;
+    if (!this.chordCandidates) this.strum = null;
+  }
+
   process(chunk: Float32Array): DetectorEvent[] {
     const events: DetectorEvent[] = [];
     const { hop, windowSize } = this.o;
     for (let i = 0; i < chunk.length; i++) {
       const v = chunk[i];
       this.ring[this.written % windowSize] = v;
+      this.chordRing[this.written & this.chordMask] = v;
       this.written++;
       this.hopEnergy += v * v;
       if (++this.sinceHop === hop) {
@@ -216,6 +243,26 @@ export class Detector {
     const startIdx = this.written - len;
     for (let i = 0; i < len; i++) this.scratch[i] = this.ring[(startIdx + i) % windowSize];
     return this.scratch;
+  }
+
+  /** The `n` samples starting at absolute sample `start` (zeros before the stream began). */
+  private chordSlice(start: number, n: number): Float32Array {
+    const out = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const idx = start + i;
+      if (idx >= 0 && idx < this.written) out[i] = this.chordRing[idx & this.chordMask];
+    }
+    return out;
+  }
+
+  private finishStrum(now: number): DetectorEvent {
+    const { at, required, contradicting } = this.strum!;
+    const { sampleRate } = this.o;
+    const lay = strumLayout(sampleRate);
+    const post = this.chordSlice(at + lay.postStart, lay.n);
+    const pre = this.chordSlice(at - lay.gap - lay.n, lay.n);
+    const { strengths, shadowed } = analyzeStrum(post, pre, sampleRate, required, contradicting, STRUM_PARAMS);
+    return { type: 'strum', time: at / sampleRate, emittedAt: now / sampleRate, strengths, shadowed };
   }
 
   private onHop(rms: number, events: DetectorEvent[]): void {
@@ -250,8 +297,15 @@ export class Detector {
       }
       this.pending = { at, lastMidi: null, agree: 0, pre, preMidi };
       events.push({ type: 'onset', time: at / sampleRate, rms });
+      // The strings of one strum arrive over 50-80 ms and may trigger several attacks: they are one strum.
+      const merging = this.strum !== null && at - this.strum.at < 0.1 * sampleRate;
+      if (this.chordCandidates && !merging) this.strum = { at, ...this.chordCandidates };
     }
     h.push(rms);
+    if (this.strum && now >= this.strum.at + strumLayout(sampleRate).end) {
+      events.push(this.finishStrum(now));
+      this.strum = null;
+    }
     if (h.length > 8) h.shift();
 
     // --- pitch of the pending pluck: analyse only audio after the attack so the previous note

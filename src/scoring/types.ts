@@ -1,4 +1,5 @@
 import type { TargetResult } from '../model/exercise';
+import type { ChordAnalysis } from './chord';
 
 /** A TargetResult plus what the Judge knows about how it came about. Backwards compatible with TargetResult. */
 export interface ScoredTarget extends TargetResult {
@@ -9,6 +10,8 @@ export interface ScoredTarget extends TargetResult {
   wrongAttempts: number;
   /** MIDI notes heard, when relevant (wrong notes, chord attempts). */
   heard?: number[];
+  /** Chord targets judged with the spectral check: which tones were missing or foreign, and how clean the strum was. */
+  chord?: ChordAnalysis;
 }
 
 export interface RoundSummary {
