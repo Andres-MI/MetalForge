@@ -16,6 +16,8 @@ import { ResultsScene } from './scenes/results';
 import { CalibrationScene } from './scenes/calibration';
 import { TelarScene } from './scenes/telar';
 import { PorteroScene } from './scenes/portero';
+import { ClimbScene } from './scenes/climb';
+import { TowerScene } from './scenes/tower';
 
 installHooks();
-createGame(document.getElementById('app')!, [BootScene, PickerScene, HubScene, SoonScene, TunerScene, ModeChoiceScene, LevelSelectScene, PulsoScene, SaltoScene, FirefliesScene, NinjaScene, ResultsScene, CalibrationScene, TelarScene, PorteroScene]);
+createGame(document.getElementById('app')!, [BootScene, PickerScene, HubScene, SoonScene, TunerScene, ModeChoiceScene, LevelSelectScene, PulsoScene, SaltoScene, FirefliesScene, NinjaScene, ResultsScene, CalibrationScene, TelarScene, PorteroScene, ClimbScene, TowerScene]);
