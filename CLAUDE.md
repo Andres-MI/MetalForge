@@ -20,6 +20,10 @@ de construcción y sus prompts en `docs/FASES.md`.
 - `node scripts/salto-fake.cjs [url] [guitar|bass4|bass5] [nivel]` — juega Salto con la entrada falsa: partida perfecta,
   150 ms tarde, una nota saltada (tropiezo) y en silencio (se acaban los corazones → reinicio más lento → resultados);
   comprueba que los obstáculos caen en su pulso y sale con código 1 si algo falla; capturas `test-results/salto-*`
+- `node scripts/frets-fake.cjs [url] [guitar|bass4|bass5] [nivelL] [nivelN]` — juega Luciérnagas (perfecta, con notas
+  erróneas y salto) y Ninja (perfecta, trastes erróneos, en silencio → reinicio más lento) con la entrada falsa; sale con
+  código 1 si algo falla; capturas `test-results/frets-*`. `npx tsx scripts/make-frets-wav.ts <wav>` +
+  `node scripts/frets-audio.cjs <wav>` — Luciérnagas con las notas del ejercicio sintetizadas como micrófono
 - `node scripts/keys-rapid.cjs [url]` — ráfagas de teclas sin pausa en el salón y el selector de nivel: cada pulsación
   debe contar exactamente una vez
 - `npx tsx scripts/make-calibration-wav.ts <wav> [lagMs]` y `node scripts/calibrate.cjs <wav> [url] [etiqueta]` — WAV de
@@ -45,9 +49,9 @@ de construcción y sus prompts en `docs/FASES.md`.
   (apagable; `energy` 0..1 lo anima; solo mueve el fondo, nunca el primer plano), `kit.ts` (ayudas de escena),
   `keyboardFix.ts` (Phaser 3.90 repartía varias veces las teclas pulsadas en un mismo fotograma; se instala en `createGame`) y
   `hooks.ts` (`window.__metalforge`: `heard`, `scene`, `instrument`, `selected`, `backgroundEffects`, `useFakeInput`, `fake`,
-  `judged`, `results` (con `arcade` en los arcades), `salto`, `calibration`, `audio`, para automatizar).
+  `judged`, `results` (con `arcade` en los arcades), `salto`, `fireflies`, `ninja`, `calibration`, `audio`, para automatizar).
 - `src/scenes/` — escenas Phaser: `boot`, `picker` (primer arranque), `hub` (salón recreativo; las máquinas salen
-  de la lista de `hubData.ts`), `soon` («Próximamente»), `tuner`, `modechoice` (Aprender/Practicar), `levelselect`, `pulso`, `salto` (arcade de ritmo), `results` (común) y
+  de la lista de `hubData.ts`), `soon` («Próximamente»), `tuner`, `modechoice` (Aprender/Practicar), `levelselect`, `pulso`, `salto` (arcade de ritmo), `fireflies` (Luciérnagas, aprender trastes), `ninja` (arcade de trastes), `results` (común) y
   `calibration` (tecla C en el salón). Una escena nueva se registra en `main.ts`.
 - `src/profile/` — perfil en IndexedDB tras la interfaz `KeyValueStorage` (`store.ts`; `idb.ts` real, `memory.ts`
   falsa para pruebas): instrumento, ajustes y un blob de progreso opaco por instrumento.
@@ -68,6 +72,9 @@ de construcción y sus prompts en `docs/FASES.md`.
   `salto/` guarda las reglas puras del arcade de ritmo: `state.ts` (`SaltoRun`: puntos, racha, corazones, rondas y
   reinicios) y `pace.ts` (`nextBpm`: tempo adaptativo dentro de la banda del nivel). `progressBlob.ts` guarda también
   el récord por juego+nivel (`arcadeBest`).
+  `frets/board.ts` es la disposición pura del mástil que comparten Luciérnagas y Ninja (`scenes/fretsDraw.ts` lo dibuja);
+  `ninja/` guarda las reglas del arcade de trastes: `state.ts` (`NinjaRun`, `planWave`: escudos = objetivo repetido) y
+  `pace.ts` (tiempo límite por enemigo, adaptativo). `hearNote.ts` suena una nota con el sintetizador (tecla H).
 - `tests/helpers/robot.ts` — jugador robot: sintetiza el ejercicio con errores inyectables, lo pasa por el
   detector real y el `Judge`.
 

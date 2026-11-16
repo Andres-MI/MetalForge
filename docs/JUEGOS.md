@@ -52,6 +52,18 @@ Un arcade puede encadenar varias rondas (cada una un `Exercise` con su tempo) so
 - Perder no devuelve al menú: en Salto, sin corazones la ronda se repite más lenta («Otra vez, más despacio»);
   tras 3 reinicios la partida termina en resultados.
 
+## Ejercicios sin reloj (ejemplo: Luciérnagas y Ninja)
+
+- Con `exercise.timed === false` el `Judge` espera al jugador: `wrongAttempt` llega en cada nota equivocada (`r.heard`) y
+  `session.skipCurrent()` da el objetivo por perdido (`miss`) y muestra el siguiente. `GameSession` no lleva reloj de ritmo:
+  usa `session.input.now()` si el juego necesita tiempo propio.
+- Un arcade sin reloj pone su propio límite por objetivo en un módulo puro con el tiempo inyectado (`src/game/ninja/state.ts`,
+  `pace.ts`, `tests/ninja.test.ts`). Un objetivo que pide dos golpes se pasa al `Judge` como dos objetivos seguidos con la
+  misma nota (`planWave`).
+- La disposición del mástil (`src/game/frets/board.ts`) es pura y la usan los dos juegos: misma posición horizontal para cada traste.
+- Probar: `fake.pluck(midi)` mete una nota en el instante virtual actual (avanza ~0,1 s para que se oiga);
+  `__metalforge.fireflies` / `__metalforge.ninja` dan el objetivo vivo (`midi`, traste, cuerda). Ver `scripts/frets-fake.cjs`.
+
 ## Notas esperadas
 
 `GameSession.start()` llama a `input.setExpected(midis)` con las notas del ejercicio (`note` → su midi, `anyOf` y
