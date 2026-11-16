@@ -266,3 +266,24 @@ describe('profile settings', () => {
     expect(sanitizeProfile({ settings: { latencyOffset: 9 } }).settings.latencyOffset).toBeUndefined();
   });
 });
+
+describe('metronome and untimed exercises', () => {
+  it('does not click while an untimed exercise waits for the player', async () => {
+    const { generate } = await import('../src/exercises/index');
+    const { GameSession } = await import('../src/game/session');
+    const { FakeInput } = await import('../src/game/input');
+    for (const [skill, level, expectClicks] of [['frets', 1, false], ['rhythm', 1, true]] as const) {
+      const clicks: number[] = [];
+      const input = new FakeInput();
+      const session = new GameSession({
+        exercise: generate(skill, { instrument: 'guitar', level, seed: 5 }),
+        input,
+        clickSink: { click: (time: number) => void clicks.push(time) },
+      });
+      session.start();
+      input.advance(3);
+      session.dispose();
+      expect(clicks.length > 0, skill).toBe(expectClicks);
+    }
+  });
+});

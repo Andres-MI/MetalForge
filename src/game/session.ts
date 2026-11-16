@@ -122,12 +122,17 @@ export class GameSession {
     return this.latency;
   }
 
+  /** Only exercises with a tempo click: an untimed one waits for the player in silence. */
+  private get hasPulse(): boolean {
+    return this.exercise.timed || this.exercise.bpm !== undefined;
+  }
+
   /** Starts the clock (count-in first), the metronome and listening. */
   start(): void {
     if (this.clock.state !== 'idle') return;
     this.clock.start({ bpm: this.exercise.bpm ?? 60, countInBeats: this.countInBeats });
     this.unsubscribe = this.input.subscribe((events, upTo) => this.onInput(events, upTo));
-    this.metronome.start();
+    if (this.hasPulse) this.metronome.start();
     this.input.setExpected?.(expectedMidis(this.exercise));
     // A real input has no virtual driver: tick on a timer (it only polls; musical time comes from the clock).
     if (this.input.kind === 'audio') this.timer = setInterval(() => this.tick(), this.tickMs);
@@ -154,7 +159,7 @@ export class GameSession {
   resume(): void {
     if (this.clock.state !== 'paused') return;
     this.clock.resume();
-    this.metronome.start();
+    if (this.hasPulse) this.metronome.start();
   }
 
   /** Beat now, for drawing (frozen while paused; negative in the count-in). Compensates device output latency so

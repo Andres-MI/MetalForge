@@ -11,8 +11,8 @@ código. Cada fase se cierra con `npm test`, los agentes indicados, `/code-revie
 | 3 | Ritmo: Pulso y Salto | playtester, pedagogo | Hecha |
 | 4 | Trastes: Luciérnagas y Ninja | playtester, pedagogo, pixel-artist | Hecha |
 | 5 | Cuerdas: Telar y Portero | playtester, pedagogo, pixel-artist | Hecha |
-| 6 | Acordes: Forja y Hechicero | dsp-tester, playtester, pixel-artist | |
-| 7 | Escalas: Escalada y Torre | playtester, pedagogo, pixel-artist | |
+| 6 | Acordes: Forja y Hechicero | dsp-tester, playtester, pixel-artist | En curso |
+| 7 | Escalas: Escalada y Torre | playtester, pedagogo, pixel-artist | Hecha |
 | 8 | Curso: módulos, sondeo, repaso diario, jefes, Turbo | pedagogo, playtester | |
 | 9 | Segunda tanda de juegos | todos | |
 | 10 | Canciones desde Guitar Pro | dsp-tester, playtester | |

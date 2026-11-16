@@ -56,13 +56,13 @@ de construcción y sus prompts en `docs/FASES.md`.
   (apagable; `energy` 0..1 lo anima; solo mueve el fondo, nunca el primer plano), `kit.ts` (ayudas de escena),
   `keyboardFix.ts` (Phaser 3.90 repartía varias veces las teclas pulsadas en un mismo fotograma; se instala en `createGame`) y
   `hooks.ts` (`window.__metalforge`: `heard`, `scene`, `instrument`, `selected`, `backgroundEffects`, `useFakeInput`, `fake`,
-  `judged`, `results` (con `arcade` en los arcades), `salto`, `telar`, `portero`, `calibration`, `audio`, para automatizar).
+  `judged`, `results` (con `arcade` en los arcades), `salto`, `fireflies`, `ninja`, `telar`, `portero`, `climb`, `tower`,
+  `calibration`, `audio`, para automatizar).
 - `src/scenes/` — escenas Phaser: `boot`, `picker` (primer arranque), `hub` (salón recreativo; las máquinas salen
-  de la lista de `hubData.ts`), `soon` («Próximamente»), `tuner`, `modechoice` (Aprender/Practicar), `levelselect`, `pulso`, `salto` (arcade de ritmo), `telar` (aprender cuerdas), `portero` (arcade de cuerdas; `stringsView.ts` son ayudas de dibujo de ambos), `results` (común) y
-  `judged`, `results` (con `arcade` en los arcades), `salto`, `fireflies`, `ninja`, `calibration`, `audio`, para automatizar).
-- `src/scenes/` — escenas Phaser: `boot`, `picker` (primer arranque), `hub` (salón recreativo; las máquinas salen
-  de la lista de `hubData.ts`), `soon` («Próximamente»), `tuner`, `modechoice` (Aprender/Practicar), `levelselect`, `pulso`, `salto` (arcade de ritmo), `fireflies` (Luciérnagas, aprender trastes), `ninja` (arcade de trastes), `results` (común) y
-  `calibration` (tecla C en el salón). Una escena nueva se registra en `main.ts`.
+  de la lista de `hubData.ts`), `soon` («Próximamente»), `tuner`, `modechoice` (Aprender/Practicar), `levelselect`,
+  `results` (común) y `calibration` (tecla C en el salón). Juegos, por pareja aprender/arcade: `pulso`/`salto` (ritmo),
+  `fireflies`/`ninja` (trastes; `fretsDraw.ts` dibuja el mástil de ambos), `telar`/`portero` (cuerdas; `stringsView.ts`
+  son ayudas de dibujo de ambos) y `climb`/`tower` (escalas; `scalesDraw.ts`). Una escena nueva se registra en `main.ts`.
 - `src/profile/` — perfil en IndexedDB tras la interfaz `KeyValueStorage` (`store.ts`; `idb.ts` real, `memory.ts`
   falsa para pruebas): instrumento, ajustes y un blob de progreso opaco por instrumento.
 - `src/ui/` — `palette.ts` es la única fuente de colores (claves + `paletteInt`); `style.css` centra el lienzo.
