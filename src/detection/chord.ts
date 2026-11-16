@@ -17,7 +17,7 @@
  *     covers the whole spectrum (E2's 3rd harmonic IS B3; its 5th is 3 Hz from G#4 = the 2nd of G#3). We do not try to
  *     resolve them: a harmonic of a note is "contested" when a harmonic of ANOTHER chord tone (full combs up to 4 kHz, so
  *     no unmodelled partial passes for evidence) lies within max(2 bins, 25 cents). Only uncontested harmonics (the first
- *     6, below 2 kHz) are evidence. A foreign note loses a partial it shares with a chord tone; a chord tone never loses
+ *     8, below 2.5 kHz) are evidence. A foreign note loses a partial it shares with a chord tone; a chord tone never loses
  *     one to a foreign note (if the foreign note sounds the chord is wrong anyway, and the comb of a low foreign string
  *     would leave the chord tones nothing). G3 against G#3 (Em against E) works because at 196 and 208 Hz nothing else
  *     of the chord is near, while 392 vs 415 Hz is already 2 lobes apart.
@@ -45,12 +45,14 @@ export const STRUM_PARAMS = {
   /** Seconds of audio analysed. */
   window: 0.19,
   /** How much of the spectrum before the attack is subtracted (1 = all; less keeps a re-plucked ringing string). */
-  preWeight: 0.85,
+  preWeight: 0.7,
+  /** The evidence after subtracting the ring is never less than this fraction of what the strum had there. */
+  ringFloor: 0.1,
   /** Gap kept between the end of `pre` and the attack, seconds. */
   preGap: 0.002,
   /** Harmonics of a note that count as evidence, and the highest frequency used for that. */
-  harmonics: 6,
-  evidenceMaxFreq: 2000,
+  harmonics: 8,
+  evidenceMaxFreq: 2500,
   /** Every harmonic of every candidate up to this frequency is modelled when looking for coincidences (the comb of a
    *  low string covers the whole spectrum: an unmodelled partial would be taken for evidence of some other note). */
   combMaxFreq: 4000,
@@ -167,13 +169,17 @@ export function analyzeStrum(
       const a = Math.max(1, Math.floor((freq - tol) / binHz));
       const b = Math.min(half - 2, Math.ceil((freq + tol) / binHz));
       // A line is a local maximum. The slope of a strong neighbour's skirt is not one: it counts as the window's minimum.
-      let e = -1;
-      let lowest = Infinity;
-      for (let k = a; k <= b; k++) {
-        lowest = Math.min(lowest, diff[k]);
-        if (diff[k] >= diff[k - 1] && diff[k] > diff[k + 1]) e = Math.max(e, diff[k]);
-      }
-      if (e < 0) e = lowest;
+      const lineIn = (arr: Float64Array) => {
+        let e = -1;
+        let lowest = Infinity;
+        for (let k = a; k <= b; k++) {
+          lowest = Math.min(lowest, arr[k]);
+          if (arr[k] >= arr[k - 1] && arr[k] > arr[k + 1]) e = Math.max(e, arr[k]);
+        }
+        return e < 0 ? lowest : e;
+      };
+      // Subtracting the ring can wipe out a re-plucked note that is weaker than what still rings: never below a fraction of the strum.
+      const e = Math.max(lineIn(diff), params.ringFloor * lineIn(mPost));
       out.push({ freq, owner: ci, contested: false, evidence: e, used });
     }
     return out;
