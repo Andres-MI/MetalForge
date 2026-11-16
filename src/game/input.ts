@@ -5,6 +5,8 @@
  */
 import type { DetectorEvent } from '../detection/detector';
 import type { Instrument } from '../model/instrument';
+import type { ChordKind } from '../scoring/chord';
+import { chordSet } from '../scoring/chordSet';
 import { startInput, type InputHandle } from '../audio/input';
 import type { TimeSource } from './clock';
 
@@ -22,6 +24,11 @@ export interface GameInput extends TimeSource {
   outputLatency(): number;
   /** Tells the detector which MIDI notes the exercise uses (last-resort help); empty clears it. */
   setExpected?(midis: number[]): void;
+  /**
+   * Chord to check after every attack (tones + notes of other chords); the input then delivers `strum` events.
+   * Its presence means "this input can verify chords spectrally": the session then waits for them.
+   */
+  setChordCandidates?(required: number[], contradicting: number[]): void;
   /** Audio chain diagnostics (seconds), real input only. */
   info?(): { lag: number; base: number; output: number };
   stop(): void;
@@ -51,6 +58,7 @@ export async function openAudioInput(inst: Instrument): Promise<GameInput> {
     },
     info: () => ({ lag: handle.lag(), ...handle.latencies() }),
     setExpected: (midis) => handle.setExpected(midis),
+    setChordCandidates: (required, contradicting) => handle.setChordCandidates(required, contradicting),
     subscribe(cb) {
       listeners.add(cb);
       return () => listeners.delete(cb);
@@ -78,6 +86,11 @@ export class FakeInput implements GameInput {
   expected: number[] = [];
   setExpected(midis: number[]): void {
     this.expected = [...midis];
+  }
+  /** Last chord candidates the session set (tests read it). */
+  chordCandidates: { required: number[]; contradicting: number[] } = { required: [], contradicting: [] };
+  setChordCandidates(required: number[], contradicting: number[]): void {
+    this.chordCandidates = { required: [...required], contradicting: [...contradicting] };
   }
 
   now(): number {
@@ -131,7 +144,7 @@ export class FakeInput implements GameInput {
 }
 
 function deliveredAt(e: DetectorEvent): number {
-  return e.type === 'note' ? e.emittedAt : e.time;
+  return e.type === 'note' || e.type === 'strum' ? e.emittedAt : e.time;
 }
 
 /** An onset (and optionally the note that follows) at a context time, shaped like the real detector's output. */
@@ -141,4 +154,18 @@ export function fakePluck(time: number, midi?: number, opts: { rms?: number; det
     out.push({ type: 'note', time, emittedAt: time + (opts.detectionDelay ?? 0.04), freq: 440 * Math.pow(2, (midi - 69) / 12), midi, clarity: 0.95 });
   }
   return out;
+}
+
+/**
+ * The events of a strummed chord as the real detector would report them: the attack, the chord's first note and the
+ * `strum` event with a strength per candidate. `muted` lists tones that did not sound, `foreign` notes of another chord
+ * that did. Without `muted`/`foreign` it is a perfect strum.
+ */
+export function fakeChord(time: number, chord: ChordKind, opts: { muted?: number[]; foreign?: number[]; rms?: number; detectionDelay?: number } = {}): DetectorEvent[] {
+  const set = chordSet(chord);
+  const strengths: Record<number, number> = {};
+  for (const m of set.required) strengths[m] = opts.muted?.includes(m) ? 0 : 1;
+  for (const m of set.contradicting) strengths[m] = opts.foreign?.includes(m) ? 1 : 0;
+  const first = fakePluck(time, chord.midis[0], { rms: opts.rms });
+  return [...first, { type: 'strum', time, emittedAt: time + (opts.detectionDelay ?? 0.23), strengths, shadowed: [] }];
 }

@@ -3,7 +3,7 @@
  * unit tests and, through `window.__metalforge.fake`, by browser automation.
  */
 import type { Target } from '../model/exercise';
-import { fakePluck, type FakeInput } from './input';
+import { fakeChord, fakePluck, type FakeInput } from './input';
 import type { GameSession } from './session';
 
 export interface FakePlayOptions {
@@ -40,7 +40,7 @@ export function playFake(session: GameSession, fake: FakeInput, opts: FakePlayOp
     if (skip.has(i)) return;
     const time = ideal + ((opts.offsetMs ?? 0) + (opts.jitterMs?.[i] ?? 0)) / 1000;
     lastTime = Math.max(lastTime, time);
-    fake.inject(fakePluck(time, midiFor(t)));
+    fake.inject(t.kind.type === 'chord' ? fakeChord(time, t.kind) : fakePluck(time, midiFor(t)));
   });
   for (const b of opts.strayBeats ?? []) fake.inject(fakePluck(clock.beatToTime(b)));
   const end = opts.untilBeat !== undefined ? clock.beatToTime(opts.untilBeat) : lastTime + 3;

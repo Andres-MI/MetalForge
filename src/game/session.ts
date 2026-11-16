@@ -15,6 +15,7 @@
 import type { DetectorEvent } from '../detection/detector';
 import type { Exercise } from '../model/exercise';
 import { emptyMastery, updateMastery, type Mastery } from '../progress';
+import { chordSet } from '../scoring/chordSet';
 import { Judge } from '../scoring/judge';
 import type { RoundSummary, ScoredTarget } from '../scoring/types';
 import { GameClock } from './clock';
@@ -83,6 +84,8 @@ export class GameSession {
   private disposed = false;
   private released = false;
   private readonly opts: SessionOptions;
+  private readonly spectralChords: boolean;
+  private candidatesFor = -2; // target index whose chord notes the input was last given
 
   constructor(opts: SessionOptions) {
     this.opts = opts;
@@ -94,7 +97,9 @@ export class GameSession {
     this.store = opts.mastery;
     this.wall = opts.wallClock ?? Date.now;
     this.tickMs = opts.tickMs ?? 30;
-    this.judge = new Judge(opts.exercise, { startTime: 0, latencyOffset: this.latency });
+    // An input that can check chords makes the Judge wait for the strum events (see the Detector).
+    this.spectralChords = typeof opts.input.setChordCandidates === 'function' && opts.exercise.targets.some((t) => t.kind.type === 'chord');
+    this.judge = new Judge(opts.exercise, { startTime: 0, latencyOffset: this.latency, spectralChords: this.spectralChords });
     const sink = opts.clickSink ?? (opts.input.context ? new AudioClickSink(opts.input.context) : { click() {} });
     this.metronome = new Metronome(this.clock, sink, { volume: opts.metronome?.volume, muted: opts.metronome?.on === false });
   }
@@ -134,6 +139,7 @@ export class GameSession {
     this.unsubscribe = this.input.subscribe((events, upTo) => this.onInput(events, upTo));
     if (this.hasPulse) this.metronome.start();
     this.input.setExpected?.(expectedMidis(this.exercise));
+    this.syncChordCandidates();
     // A real input has no virtual driver: tick on a timer (it only polls; musical time comes from the clock).
     if (this.input.kind === 'audio') this.timer = setInterval(() => this.tick(), this.tickMs);
     this.tick();
@@ -192,6 +198,7 @@ export class GameSession {
     this.timer = null;
     this.unsubscribe?.();
     this.unsubscribe = null;
+    if (this.spectralChords) this.input.setChordCandidates?.([], []);
   }
 
   /** Aborts the round without saving anything and closes the input. */
@@ -200,6 +207,7 @@ export class GameSession {
     this.disposed = true;
     this.release();
     this.input.setExpected?.([]);
+    if (this.spectralChords) this.input.setChordCandidates?.([], []);
     this.input.stop();
   }
 
@@ -211,10 +219,10 @@ export class GameSession {
     if (this._finished || this.clock.state !== 'running') return;
     this.lastUpTo = Math.max(this.lastUpTo, upTo);
     const mapped = events.map((e): DetectorEvent => {
-      if (e.type === 'note') return { ...e, time: this.toGame(e.time), emittedAt: this.toGame(e.emittedAt) };
+      if (e.type === 'note' || e.type === 'strum') return { ...e, time: this.toGame(e.time), emittedAt: this.toGame(e.emittedAt) };
       return { ...e, time: this.toGame(e.time) };
     });
-    for (const e of events) if (e.type !== 'pitch') this.emit('heard', e);
+    for (const e of events) if (e.type !== 'pitch' && e.type !== 'strum') this.emit('heard', e);
     this.handle(this.judge.push(mapped));
     this.countStrays();
     this.tick();
@@ -244,6 +252,20 @@ export class GameSession {
 
   private handle(results: ScoredTarget[]): void {
     for (const r of results) this.emit(r.final ? 'targetResolved' : 'wrongAttempt', r);
+    this.syncChordCandidates();
+  }
+
+  /** The detector checks the chord the player is working on now: its tones plus the notes of look-alike chords. */
+  private syncChordCandidates(): void {
+    if (!this.spectralChords || this.released) return;
+    const i = this.judge.done ? -1 : this.judge.currentIndex;
+    if (i === this.candidatesFor) return;
+    this.candidatesFor = i;
+    const k = this.exercise.targets[i]?.kind;
+    if (k && k.type === 'chord') {
+      const set = chordSet(k);
+      this.input.setChordCandidates?.(set.required, set.contradicting);
+    } else this.input.setChordCandidates?.([], []);
   }
 
   private countStrays(): void {
