@@ -3,13 +3,17 @@
 import type { DetectorEvent, DetectorOptions } from '../detection/detector';
 import { BlockProcessor } from './blocks';
 
-export type WorkerIn = { type: 'init'; options: DetectorOptions; port: MessagePort } | { type: 'expected'; midis: number[] };
+export type WorkerIn =
+  | { type: 'init'; options: DetectorOptions; port: MessagePort }
+  | { type: 'expected'; midis: number[] }
+  | { type: 'chord'; required: number[]; contradicting: number[] };
 export type WorkerOut = { type: 'events'; events: DetectorEvent[]; upTo: number };
 
 const scope = self as unknown as DedicatedWorkerGlobalScope;
 
 let proc: BlockProcessor | null = null;
 let pendingExpected: number[] = [];
+let pendingChord: { required: number[]; contradicting: number[] } = { required: [], contradicting: [] };
 
 scope.onmessage = (ev: MessageEvent<WorkerIn>) => {
   const msg = ev.data;
@@ -18,9 +22,15 @@ scope.onmessage = (ev: MessageEvent<WorkerIn>) => {
     proc?.setExpected(msg.midis);
     return;
   }
+  if (msg.type === 'chord') {
+    pendingChord = { required: msg.required, contradicting: msg.contradicting };
+    proc?.setChordCandidates(msg.required, msg.contradicting);
+    return;
+  }
   if (msg.type !== 'init') return;
   const p = new BlockProcessor(msg.options);
   p.setExpected(pendingExpected);
+  p.setChordCandidates(pendingChord.required, pendingChord.contradicting);
   proc = p;
   const port = msg.port;
   port.onmessage = (m: MessageEvent<{ samples: Float32Array; frame: number }>) => {

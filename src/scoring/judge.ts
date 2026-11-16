@@ -9,12 +9,14 @@
  * what was heard) and the target stays; the right note resolves it with the reaction time as delta.
  *
  * Which event each kind listens to: attack = onset; note/pitchClass/anyOf = note (pitch);
- * chord = onset + the notes that follow it (see ChordVerifier).
+ * chord = onset + the notes that follow it (see ChordVerifier). With `spectralChords` the Judge waits for the
+ * detector's `strum` event of that attack (the audio check of the chord, ~230 ms after it) and the verifier reads it;
+ * if it never comes the verdict falls back to the pitches heard.
  */
 import type { DetectorEvent } from '../detection/detector';
 import type { Exercise, Judgement, Target } from '../model/exercise';
 import type { InstrumentId } from '../model/instrument';
-import { pitchChordVerifier, type ChordKind, type ChordVerifier } from './chord';
+import { pitchChordVerifier, spectralChordVerifier, type ChordAnalysis, type ChordHearing, type ChordKind, type ChordVerifier } from './chord';
 import { summarize } from './summary';
 import type { RoundSummary, ScoredTarget } from './types';
 
@@ -46,13 +48,24 @@ export interface JudgeOptions {
   chordVerifier?: ChordVerifier;
   /** What a chord attack with no identifiable pitch counts as. Default 'hit' (benefit of the doubt). */
   unknownChord?: 'hit' | 'wrong';
+  /**
+   * The input delivers `strum` events (the detector was given chord candidates): a chord attempt waits for its strum
+   * and the default verifier is the spectral one. Default false: chords are judged by the pitches heard, as before.
+   */
+  spectralChords?: boolean;
+  /** Seconds after an attack that a chord attempt waits for its `strum` event (spectral mode only). Default `windows.chord + 0.15`. */
+  strumWait?: number;
 }
 
 interface Attempt {
   time: number; // raw detector time of the attack
   notes: number[];
   open: boolean;
+  strum?: ChordHearing['strum'];
 }
+
+/** Attacks closer than this to an open chord attempt are more strings of the same strum (spectral mode). */
+const STRUM_MERGE = 0.1;
 
 const PITCHED = new Set(['note', 'pitchClass', 'anyOf']);
 
@@ -71,6 +84,8 @@ export class Judge {
   private readonly latency: number;
   private readonly verifier: ChordVerifier;
   private readonly unknownAs: 'hit' | 'wrong';
+  private readonly spectral: boolean;
+  private readonly strumWait: number;
   private readonly finals: (ScoredTarget | undefined)[];
   private readonly wrongs: number[];
   private readonly attempts: Attempt[] = [];
@@ -85,7 +100,9 @@ export class Judge {
     this.win = { ...windowsFor(exercise.instrument), ...options.windows };
     this.start = options.startTime ?? 0;
     this.latency = options.latencyOffset ?? 0;
-    this.verifier = options.chordVerifier ?? pitchChordVerifier;
+    this.spectral = options.spectralChords ?? false;
+    this.verifier = options.chordVerifier ?? (this.spectral ? spectralChordVerifier : pitchChordVerifier);
+    this.strumWait = options.strumWait ?? this.win.chord + 0.15;
     this.unknownAs = options.unknownChord ?? 'hit';
     this.finals = exercise.targets.map(() => undefined);
     this.wrongs = exercise.targets.map(() => 0);
@@ -113,8 +130,9 @@ export class Judge {
     const out: ScoredTarget[] = [];
     for (const e of events) {
       if (e.type === 'pitch') continue;
-      this.clock = Math.max(this.clock, e.type === 'note' ? e.emittedAt : e.time);
+      this.clock = Math.max(this.clock, e.type === 'note' || e.type === 'strum' ? e.emittedAt : e.time);
       if (e.type === 'onset') this.onOnset(e.time, out);
+      else if (e.type === 'strum') this.onStrum(e, out);
       else this.onNote(e.time, e.midi, out);
     }
     this.expire(out);
@@ -168,7 +186,7 @@ export class Judge {
     return Math.abs(delta) <= this.win.hit ? 'hit' : delta < 0 ? 'early' : 'late';
   }
 
-  private settle(i: number, judgement: Judgement, delta: number, out: ScoredTarget[], heard?: number[]): void {
+  private settle(i: number, judgement: Judgement, delta: number, out: ScoredTarget[], heard?: number[], chord?: ChordAnalysis): void {
     const r: ScoredTarget = {
       itemId: this.ex.targets[i].itemId,
       judgement,
@@ -178,6 +196,7 @@ export class Judge {
       wrongAttempts: this.wrongs[i],
       heard,
     };
+    if (chord) r.chord = chord;
     this.finals[i] = r;
     out.push(r);
     if (!this.ex.timed && i === this.cursor) {
@@ -190,9 +209,9 @@ export class Judge {
     this.appeared = Math.max(this.appeared, rawTime);
   }
 
-  private wrongAttempt(i: number, heard: number[], out: ScoredTarget[]): void {
+  private wrongAttempt(i: number, heard: number[], out: ScoredTarget[], chord?: ChordAnalysis): void {
     this.wrongs[i]++;
-    out.push({
+    const r: ScoredTarget = {
       itemId: this.ex.targets[i].itemId,
       judgement: 'wrong',
       delta: 0,
@@ -200,7 +219,9 @@ export class Judge {
       final: false,
       wrongAttempts: this.wrongs[i],
       heard,
-    });
+    };
+    if (chord) r.chord = chord;
+    out.push(r);
   }
 
   private timedCandidates(rawTime: number, accept: (t: Target) => boolean): { i: number; delta: number }[] {
@@ -215,9 +236,13 @@ export class Judge {
   }
 
   private onOnset(time: number, out: ScoredTarget[]): void {
-    // A new attack ends any strum still collecting notes ("no other onset intervenes").
-    this.closeAttempts(out, true);
-    if (this.hasChords) this.attempts.push({ time, notes: [], open: true });
+    // A new attack ends any strum still collecting notes ("no other onset intervenes"). In spectral mode the strings of one
+    // strum can trigger several attacks within ~80 ms: those belong to the strum already open.
+    const sameStrum = this.spectral && this.attempts.some((a) => a.open && time - a.time < STRUM_MERGE);
+    if (!sameStrum) {
+      this.closeAttempts(out, true);
+      if (this.hasChords) this.attempts.push({ time, notes: [], open: true });
+    }
 
     if (this.ex.timed) {
       const c = this.timedCandidates(time, (t) => t.kind.type === 'attack');
@@ -235,8 +260,9 @@ export class Judge {
     const attempt = this.attempts.find((a) => a.open && time >= a.time - 0.005 && time <= a.time + this.win.chord);
     if (attempt) {
       attempt.notes.push(midi);
-      // A compatible chord is accepted at once; anything else waits for the rest of the window.
-      const target = this.attemptTarget(attempt);
+      // A compatible chord is accepted at once; anything else waits for the rest of the window. In spectral mode only
+      // the strum event decides, so the notes are just kept.
+      const target = this.spectral ? undefined : this.attemptTarget(attempt);
       if (target && this.verifier.verify(target.kind, { onsetTime: attempt.time, notes: attempt.notes }) === 'ok') {
         this.finishAttempt(attempt, out);
       }
@@ -266,6 +292,14 @@ export class Judge {
     }
   }
 
+  private onStrum(e: Extract<DetectorEvent, { type: 'strum' }>, out: ScoredTarget[]): void {
+    if (!this.spectral) return;
+    const a = this.attempts.find((x) => x.open && Math.abs(x.time - e.time) < 0.02);
+    if (!a) return;
+    a.strum = { strengths: e.strengths, shadowed: e.shadowed };
+    this.finishAttempt(a, out);
+  }
+
   private attemptTarget(a: Attempt): (Target & { kind: ChordKind }) | undefined {
     const i = this.attemptIndex(a);
     const t = i === undefined ? undefined : this.ex.targets[i];
@@ -289,23 +323,26 @@ export class Judge {
     }
     const target = this.ex.targets[i];
     const kind = target.kind as ChordKind;
-    let verdict = this.verifier.verify(kind, { onsetTime: a.time, notes: a.notes });
+    const hearing: ChordHearing = { onsetTime: a.time, notes: a.notes, strum: a.strum };
+    let verdict = this.verifier.verify(kind, hearing);
+    const chord = this.verifier.analyze?.(kind, hearing) ?? undefined;
     if (verdict === 'unknown') verdict = this.unknownAs === 'hit' ? 'ok' : 'wrong';
     if (this.ex.timed) {
       const delta = a.time - this.latency - this.expected(i);
-      this.settle(i, verdict === 'ok' ? this.judgeDelta(delta) : 'wrong', delta, out, a.notes.slice());
+      this.settle(i, verdict === 'ok' ? this.judgeDelta(delta) : 'wrong', delta, out, a.notes.slice(), chord);
     } else if (verdict === 'ok') {
       const delta = Math.max(0, a.time - this.appeared);
       this.resolved(a.time);
-      this.settle(i, 'hit', delta, out, a.notes.slice());
+      this.settle(i, 'hit', delta, out, a.notes.slice(), chord);
     } else {
-      this.wrongAttempt(i, a.notes.slice(), out);
+      this.wrongAttempt(i, a.notes.slice(), out, chord);
     }
   }
 
   private closeAttempts(out: ScoredTarget[], all: boolean): void {
     for (const a of this.attempts) {
-      if (a.open && (all || this.clock >= a.time + this.win.chord)) this.finishAttempt(a, out);
+      const wait = this.spectral ? this.strumWait : this.win.chord;
+      if (a.open && (all || this.clock >= a.time + wait)) this.finishAttempt(a, out);
     }
     for (let k = this.attempts.length - 1; k >= 0; k--) if (!this.attempts[k].open) this.attempts.splice(k, 1);
   }

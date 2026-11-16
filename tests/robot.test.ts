@@ -70,7 +70,7 @@ describe('imperfect robots', () => {
   }
 });
 
-describe('chords (informative, pitch-based verification)', () => {
+describe('chords (strums of the guitar, recognised by the real detector)', () => {
   it('guitar strummed chords are recognised by the real detector', () => {
     const ex = generate('chords', { instrument: 'guitar', level: 4, seed: 2, length: 6 });
     const run = runRobot(ex, { seed: 3, untimedGap: 1.2 });
@@ -81,5 +81,33 @@ describe('chords (informative, pitch-based verification)', () => {
     const ex = generate('chords', { instrument: 'bass4', level: 2, seed: 2, length: 3 });
     const run = runRobot(ex, { seed: 3 });
     expect(run.summary.accuracy).toBeGreaterThan(0.95);
+  });
+});
+
+describe('chord robot (spectral verification)', () => {
+  const levels = [1, 3, 4, 6, 9];
+  for (const level of levels) {
+    const ex = generate('chords', { instrument: 'guitar', level, seed: 5, length: 20 });
+    it(`L${level}: a perfect chord robot scores > 95%`, () => {
+      const run = runRobot(ex, { seed: 3, untimedGap: 1.2 });
+      if (LOG) console.log(`CHORD PERFECT L${level}: acc=${run.summary.accuracy.toFixed(3)}`);
+      expect(run.summary.accuracy).toBeGreaterThan(0.95);
+    });
+    it(`L${level}: 30% nearest-wrong chords score about 70%`, () => {
+      const run = runRobot(ex, { seed: 3, untimedGap: 1.2, wrongChordRate: 0.3 });
+      if (LOG) console.log(`CHORD WRONG30 L${level}: acc=${run.summary.accuracy.toFixed(3)}`);
+      expect(run.summary.accuracy).toBeGreaterThanOrEqual(0.62);
+      expect(run.summary.accuracy).toBeLessThanOrEqual(0.78);
+    });
+  }
+  it('the old pitch-class verifier lets those wrong chords through (that is why it was replaced)', () => {
+    const ex = generate('chords', { instrument: 'guitar', level: 6, seed: 5, length: 20 });
+    const weak = runRobot(ex, { seed: 3, untimedGap: 1.2, wrongChordRate: 0.3, spectralChords: false });
+    const real = runRobot(ex, { seed: 3, untimedGap: 1.2, wrongChordRate: 0.3 });
+    expect(weak.summary.accuracy).toBeGreaterThan(real.summary.accuracy + 0.05);
+  });
+  it('a timed progression (level 10) is judged the same way', () => {
+    const ex = generate('chords', { instrument: 'guitar', level: 10, seed: 5 });
+    expect(runRobot(ex, { seed: 3 }).summary.accuracy).toBeGreaterThan(0.95);
   });
 });

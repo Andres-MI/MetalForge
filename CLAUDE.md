@@ -8,7 +8,7 @@ de construcción y sus prompts en `docs/FASES.md`.
 
 - `npm run dev` — servidor de desarrollo (puerto 5173)
 - `npm test` — pruebas unitarias y banco de detección con umbrales
-- `npm run test:dsp` — informe del detector (añade `-- --verbose` para ver cada fallo)
+- `npm run test:dsp` — informe del detector y de la verificación de acordes (`scripts/bench-chords.ts`; añade `-- --verbose` para ver cada fallo)
 - `npm run fixtures` — genera los WAV de `tests/fixtures` (no se versionan)
 - `node scripts/play-tuner.cjs guitar|bass4|bass5 [url]` — abre el juego en Chromium con un WAV como micrófono,
   elige instrumento, va del salón al afinador con el teclado y muestra las notas oídas (con `npm run dev` en
@@ -42,7 +42,10 @@ de construcción y sus prompts en `docs/FASES.md`.
 
 - `src/model/` — instrumentos, afinaciones, y `Exercise`/`Target`: la moneda común de todos los juegos.
   No depende de nada más.
-- `src/detection/` — detección de ataques y tono. Funciones puras sobre buffers, sin Web Audio.
+- `src/detection/` — detección de ataques y tono. Funciones puras sobre buffers, sin Web Audio. `chord.ts` verifica acordes
+  sin transcribirlos: con `setChordCandidates(required, contradicting)` el `Detector` emite, ~230 ms después de cada ataque, un
+  evento `strum` con una fuerza 0..1 por nota candidata (espectro del rasgueo menos el de antes, solo armónicos no
+  coincidentes con otras notas del acorde; cabecera de `chord.ts` = método, ventana y latencia, constantes en `STRUM_PARAMS`).
 - `src/synth/` — síntesis de cuerda pulsada: audio de prueba y ejemplos sonoros dentro del juego.
 - `src/audio/` — único sitio que toca la captura de Web Audio: `input.ts` (`startInput`), worklet `public/capture-worklet.js`
   y Web Worker `detector.worker.ts` que ejecuta el `Detector` (`blocks.ts`, puro). Los eventos llevan `time` en
@@ -71,12 +74,14 @@ de construcción y sus prompts en `docs/FASES.md`.
   length})`): ritmo, trastes, cuerdas, acordes y escalas. Cada nivel añade UNA dificultad; `itemId` estables.
   Las zonas (`fretsZone`, `stringsZone`, `scalesZone`) no repiten tono: se prueba en `tests/exercises.test.ts`.
 - `src/scoring/` — `Judge`: consume `DetectorEvent` y un `Exercise` y da un `TargetResult` por objetivo (con
-  ventanas acierto/pronto/tarde, más anchas en bajo). Los acordes pasan por `ChordVerifier` (hoy por tono;
-  aquí se enchufará el verificador espectral). `summarize` da precisión, tendencia y estrellas.
+  ventanas acierto/pronto/tarde, más anchas en bajo). Los acordes pasan por `ChordVerifier`: con `spectralChords` el Judge
+  espera el evento `strum` y `spectralChordVerifier` lo lee (todas las notas del acorde presentes y ninguna contradictoria;
+  `ScoredTarget.chord` trae `missing`, `contradicted` y `cleanliness`); sin `strum` cae al verificador por tono.
+  `chordSet.ts` deriva de la lista de acordes las notas contradictorias; umbrales en `CHORD_THRESHOLDS`. `summarize` da precisión, tendencia y estrellas.
 - `src/progress/` — dominio por `itemId` con repetición espaciada (`updateMastery`, `pickForReview`,
   `toJSON`/`fromJSON`). El tiempo se inyecta; el guardado es de `src/profile/`.
 - `src/game/` — motor de juego común (guía en `docs/JUEGOS.md`): `GameClock` (tiempo del AudioContext), `Metronome`,
-  `GameSession` (entrada + reloj + `Exercise` + `Judge`, eventos tipados, guarda el dominio), `FakeInput`/`playFake`
+  `GameSession` (entrada + reloj + `Exercise` + `Judge`, eventos tipados, guarda el dominio; con acordes pasa al detector las notas del acorde actual con `setChordCandidates`), `FakeInput`/`playFake` (`fakeChord` = rasgueo con evento `strum`)
   (sesiones sin audio), `launchGame`/`beginGame` (arranque y cierre de un juego), `registry.ts` (lista de juegos),
   matemática de calibración. Un minijuego nuevo es solo una escena que recibe `GameSceneData`.
   `salto/` guarda las reglas puras del arcade de ritmo: `state.ts` (`SaltoRun`: puntos, racha, corazones, rondas y
@@ -94,8 +99,8 @@ de construcción y sus prompts en `docs/FASES.md`.
   `improvisation` (la variante libre sin reloj); `scales/backing.ts` sintetiza el acompañamiento del jefe y «oír la escala».
   `tower/state.ts` (`TowerRun`: agua, corazones, racha, pisos), `pace.ts` (velocidad del agua, bajo −20 %) y `boss.ts` (`BossFight`).
   `scenes/scalesDraw.ts` dibuja el mástil de la posición; sprites en `src/art/sprites-scales.ts`.
-- `tests/helpers/robot.ts` — jugador robot: sintetiza el ejercicio con errores inyectables, lo pasa por el
-  detector real y el `Judge`.
+- `tests/helpers/robot.ts` — jugador robot: sintetiza el ejercicio con errores inyectables (`wrongRate`, `wrongChordRate` = acorde vecino
+  equivocado), lo pasa por el detector real y el `Judge` (acordes por la vía espectral).
 
 ## Reglas
 

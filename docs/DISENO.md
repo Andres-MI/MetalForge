@@ -98,7 +98,7 @@ progreso.
 ## Límites de la detección
 
 - Se oye el tono, no la cuerda ni el traste.
-- Los acordes se comprueban contra lo esperado; no se transcriben.
+- Los acordes se comprueban contra lo esperado; no se transcriben. Se miden ~230 ms tras el rasgueo; una cuerda silenciada cuya nota es la octava de otra que suena no se puede detectar (si hiciera falta: «fundamental más dos notas basta»). Medido solo con cuerdas sintéticas.
 - Bends y slides se siguen bien; los ligados son dudosos; el palm mute queda fuera.
 
 ## Etapa 2 (después del curso)

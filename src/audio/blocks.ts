@@ -33,6 +33,11 @@ export class BlockProcessor {
     this.detector.setExpected(midis);
   }
 
+  /** Tells the detector which notes to check after every attack (chord tones + foreign notes); empty clears it. */
+  setChordCandidates(required: Iterable<number>, contradicting: Iterable<number> = []): void {
+    this.detector.setChordCandidates(required, contradicting);
+  }
+
   /** Feeds one block; returns events (context-time) and how far the detector has now processed (context seconds). */
   push(samples: Float32Array, frame: number): { events: DetectorEvent[]; upTo: number } {
     const events: DetectorEvent[] = [];
@@ -50,7 +55,7 @@ export class BlockProcessor {
     this.fed += samples.length;
     const shift = this.originFrame / this.sr;
     const shifted = events.map((e): DetectorEvent => {
-      if (e.type === 'note') return { ...e, time: e.time + shift, emittedAt: e.emittedAt + shift };
+      if (e.type === 'note' || e.type === 'strum') return { ...e, time: e.time + shift, emittedAt: e.emittedAt + shift };
       return { ...e, time: e.time + shift };
     });
     return { events: shifted, upTo: shift + this.fed / this.sr };

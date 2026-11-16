@@ -138,3 +138,5 @@ export function scenarios(): Scenario[] {
   }
   return out;
 }
+
+export * from './bench-chords';

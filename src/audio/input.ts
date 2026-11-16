@@ -25,6 +25,11 @@ export interface InputHandle {
   stop(): void;
   /** Tells the detector which MIDI notes the game waits for (last resort help; empty clears it). */
   setExpected(midis: number[]): void;
+  /**
+   * Chord to check after every attack: its tones and the notes that would make it another chord. While set, the
+   * detector emits one `strum` event per attack (about 230 ms later). Empty `required` clears it.
+   */
+  setChordCandidates(required: number[], contradicting: number[]): void;
   /** Context time (s) of the first captured sample; null until the first block arrives. */
   captureStart(): number | null;
   /** Diagnostics: seconds the processed audio trails `context.currentTime` (median of the last blocks). */
@@ -75,6 +80,7 @@ export async function startInput(
   return {
     context,
     setExpected: (midis) => worker.postMessage({ type: 'expected', midis }),
+    setChordCandidates: (required, contradicting) => worker.postMessage({ type: 'chord', required, contradicting }),
     captureStart: () => firstUpTo,
     lag() {
       if (!lags.length) return 0;
