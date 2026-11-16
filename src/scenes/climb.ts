@@ -504,6 +504,7 @@ export class ClimbScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.events.off(Phaser.Scenes.Events.UPDATE, redraw);
       offs.forEach((f) => f());
+      session.dispose();
       hooks.climb = null;
     });
 
