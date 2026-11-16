@@ -52,6 +52,13 @@ Un arcade puede encadenar varias rondas (cada una un `Exercise` con su tempo) so
 - Perder no devuelve al menú: en Salto, sin corazones la ronda se repite más lenta («Otra vez, más despacio»);
   tras 3 reinicios la partida termina en resultados.
 
+## Ejemplo sin reloj en el arcade (Portero)
+
+Un arcade puede usar un ejercicio SIN reloj: Portero (niveles 1-6 de cuerdas) pone su propio límite por tiro con el
+tiempo de la sesión (`session.clock.now()`, nunca `Date`); al agotarse llama a `session.skipCurrent()` (cuenta como fallo).
+Con reloj (niveles 7+) coloca los tiros con `session.beat()`. Reglas en `src/game/portero/` y `tests/portero.test.ts`.
+`FakeControl.pluckNote(midi)` inyecta una nota concreta, útil para los ejercicios sin reloj.
+
 ## Notas esperadas
 
 `GameSession.start()` llama a `input.setExpected(midis)` con las notas del ejercicio (`note` → su midi, `anyOf` y
@@ -69,7 +76,7 @@ recurso cuando un ataque queda tapado por cuerdas que siguen sonando. Un juego n
 
 - Node: `new GameSession({ exercise, input: new FakeInput(), ... })` y `playFake(session, fake, { offsetMs, skip })`
   (ver `tests/game.test.ts`).
-- Navegador (Salto: `scripts/salto-fake.cjs`; en juegos de varias rondas `fake` apunta siempre a la ronda en curso
+- Navegador (Salto: `scripts/salto-fake.cjs`; Telar y Portero: `scripts/strings-fake.cjs`; en juegos de varias rondas `fake` apunta siempre a la ronda en curso
   y `__metalforge.salto` da ronda, corazones, puntos, pose y posición de los obstáculos).
 - Navegador: `window.__metalforge.useFakeInput = true` antes de entrar al juego; después
   `window.__metalforge.fake.play({ offsetMs: 150, untilBeat: 3 })`, `fake.advanceToBeat(-2)`, `fake.advance(s)`.
