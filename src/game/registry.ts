@@ -6,6 +6,8 @@ export const GAMES: Record<string, GameDef> = {
   salto: { id: 'salto', title: 'Salto', skill: 'rhythm', mode: 'practice', scene: 'salto', accent: 'cyan', length: 16, cabinet: 'pulse' },
   telar: { id: 'telar', title: 'Telar', skill: 'strings', mode: 'learn', scene: 'telar', accent: 'blue', length: 16, cabinet: 'loom' },
   portero: { id: 'portero', title: 'Portero', skill: 'strings', mode: 'practice', scene: 'portero', accent: 'blue', length: 16, cabinet: 'loom' },
+  fireflies: { id: 'fireflies', title: 'Luciérnagas', skill: 'frets', mode: 'learn', scene: 'fireflies', accent: 'lime', length: 12, cabinet: 'fireflies' },
+  ninja: { id: 'ninja', title: 'Ninja', skill: 'frets', mode: 'practice', scene: 'ninja', accent: 'lime', length: 10, cabinet: 'fireflies' },
 };
 
 /** The game of a cabinet for a mode, if any. */

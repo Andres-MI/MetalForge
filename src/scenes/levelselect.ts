@@ -98,10 +98,10 @@ export class LevelSelectScene extends Phaser.Scene {
     panel(g, px - 6, py - 10, pw + 12, 20, 'water', 'deep', 0.8);
     for (let b = 0; b <= 4; b++) g.fillStyle(paletteInt(b % 4 === 0 ? 'dim' : 'water'), 1).fillRect(px + Math.round((b / 4) * pw), py - 7, 1, 14);
     ex.targets.forEach((t) => {
-      const x = px + Math.round(((t.beat ?? 0) / 4) * pw);
+      const x = px + Math.round((ex.timed ? (t.beat ?? 0) / 4 : (ex.targets.indexOf(t) + 0.5) / ex.targets.length) * pw);
       g.fillStyle(paletteInt(def.accent), 1).fillRect(x - 2, py - 2, 5, 5);
     });
-    placeText(this.info, W / 2, 128, `Tempo ${ex.bpm} BPM   ·   1 compás de ejemplo`, { color: 'foam', align: 'center' });
+    placeText(this.info, W / 2, 128, ex.timed ? `Tempo ${ex.bpm} BPM   ·   1 compás de ejemplo` : `Sin reloj   ·   ${ex.targets.length} notas de ejemplo`, { color: 'foam', align: 'center' });
     placeText(this.status, W / 2, 142, '', { color: 'lime', align: 'center' });
   }
 

@@ -10,10 +10,12 @@ import { ModeChoiceScene } from './scenes/modechoice';
 import { LevelSelectScene } from './scenes/levelselect';
 import { PulsoScene } from './scenes/pulso';
 import { SaltoScene } from './scenes/salto';
+import { FirefliesScene } from './scenes/fireflies';
+import { NinjaScene } from './scenes/ninja';
 import { ResultsScene } from './scenes/results';
 import { CalibrationScene } from './scenes/calibration';
 import { TelarScene } from './scenes/telar';
 import { PorteroScene } from './scenes/portero';
 
 installHooks();
-createGame(document.getElementById('app')!, [BootScene, PickerScene, HubScene, SoonScene, TunerScene, ModeChoiceScene, LevelSelectScene, PulsoScene, SaltoScene, ResultsScene, CalibrationScene, TelarScene, PorteroScene]);
+createGame(document.getElementById('app')!, [BootScene, PickerScene, HubScene, SoonScene, TunerScene, ModeChoiceScene, LevelSelectScene, PulsoScene, SaltoScene, FirefliesScene, NinjaScene, ResultsScene, CalibrationScene, TelarScene, PorteroScene]);

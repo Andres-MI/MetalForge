@@ -30,6 +30,47 @@ export interface SaltoHook {
   over: boolean;
 }
 
+/** What Luciérnagas shows right now. */
+export interface FirefliesHook {
+  index: number;
+  total: number;
+  /** The lit target: string index, fret and MIDI note. */
+  string: number;
+  fret: number;
+  midi: number;
+  caught: number;
+  skipped: number;
+  /** Text of the up/down hint on screen ('' when none), e.g. 'más agudo →'. */
+  hint: string;
+  /** Where the last wrong note was drawn on the board (fret, or null when off the board). */
+  wrongFret: number | null;
+  /** Screen x of the lit target and of the fret numbers' row (canvas pixels). */
+  targetX: number;
+  over: boolean;
+}
+
+/** What Ninja shows right now. */
+export interface NinjaHook {
+  wave: number;
+  waves: number;
+  attempt: number;
+  restarts: number;
+  hearts: number;
+  score: number;
+  combo: number;
+  bestCombo: number;
+  multiplier: number;
+  /** Seconds per plain enemy now. */
+  limit: number;
+  /** Seconds left on the live enemy (null before it appears or with none). */
+  remaining: number | null;
+  /** The live enemy: string, fret, MIDI, shield and hits it still needs; null with none. */
+  enemy: { string: number; fret: number; midi: number; shield: boolean; hitsLeft: number } | null;
+  /** Text of the banner on screen ('' when none), e.g. 'Otra vez, más despacio'. */
+  banner: string;
+  over: boolean;
+}
+
 /** Telar (learn, strings) live state for automation. */
 export interface TelarHook {
   /** Index of the knot waiting (untimed) or next to play (timed). */
@@ -105,6 +146,9 @@ export interface MetalforgeHooks {
   /** Telar and Portero (strings) live state, or null outside them. */
   telar: TelarHook | null;
   portero: PorteroHook | null;
+  /** Luciérnagas (learn) and Ninja (arcade) live state, or null outside them. */
+  fireflies: FirefliesHook | null;
+  ninja: NinjaHook | null;
 }
 
 declare global {
@@ -128,6 +172,8 @@ export const hooks: MetalforgeHooks = {
   audio: null,
   telar: null,
   portero: null,
+  fireflies: null,
+  ninja: null,
 };
 
 export function installHooks(): void {

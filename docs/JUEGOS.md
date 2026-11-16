@@ -58,6 +58,17 @@ Un arcade puede usar un ejercicio SIN reloj: Portero (niveles 1-6 de cuerdas) po
 tiempo de la sesión (`session.clock.now()`, nunca `Date`); al agotarse llama a `session.skipCurrent()` (cuenta como fallo).
 Con reloj (niveles 7+) coloca los tiros con `session.beat()`. Reglas en `src/game/portero/` y `tests/portero.test.ts`.
 `FakeControl.pluckNote(midi)` inyecta una nota concreta, útil para los ejercicios sin reloj.
+## Ejercicios sin reloj (ejemplo: Luciérnagas y Ninja)
+
+- Con `exercise.timed === false` el `Judge` espera al jugador: `wrongAttempt` llega en cada nota equivocada (`r.heard`) y
+  `session.skipCurrent()` da el objetivo por perdido (`miss`) y muestra el siguiente. `GameSession` no lleva reloj de ritmo:
+  usa `session.input.now()` si el juego necesita tiempo propio.
+- Un arcade sin reloj pone su propio límite por objetivo en un módulo puro con el tiempo inyectado (`src/game/ninja/state.ts`,
+  `pace.ts`, `tests/ninja.test.ts`). Un objetivo que pide dos golpes se pasa al `Judge` como dos objetivos seguidos con la
+  misma nota (`planWave`).
+- La disposición del mástil (`src/game/frets/board.ts`) es pura y la usan los dos juegos: misma posición horizontal para cada traste.
+- Probar: `fake.pluck(midi)` mete una nota en el instante virtual actual (avanza ~0,1 s para que se oiga);
+  `__metalforge.fireflies` / `__metalforge.ninja` dan el objetivo vivo (`midi`, traste, cuerda). Ver `scripts/frets-fake.cjs`.
 
 ## Notas esperadas
 
