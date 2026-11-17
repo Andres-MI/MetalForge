@@ -21,7 +21,7 @@ interface Row {
   start: number;
 }
 
-const ROW_Y = 40;
+const ROW_Y = 45;
 const ROW_H = 18;
 
 /** Turbo cabinet: pick one of the open arcades, see its record table and start the survival ladder. */

@@ -81,7 +81,7 @@ export function reviewFlow(plan: ReviewPlan, id: string, title: string, accent: 
     title,
     accent,
     moduleId,
-    phases: plan.rounds.map((r) => ({ gameId: r.gameId, level: r.level, seed: r.seed, note: `${r.items.length} elementos flojos` })),
+    phases: plan.rounds.map((r) => ({ gameId: r.gameId, level: r.level, seed: r.seed, note: `${r.items.length} flojos` })),
     index: 0,
     outcomes: [],
     over: false,
