@@ -1,5 +1,5 @@
 /**
- * Forja's second part at change levels (5-9): "un minuto de cambios". The player alternates between the two chords of
+ * Forja's second part at change levels (6-9): "un minuto de cambios". The player alternates between the two chords of
  * the change and counts CLEAN changes in 60 s. Pure: the time is injected (`now`, seconds of the session/input clock).
  *
  * The first accepted chord is the starting position and starts the minute (it is not a change). From then on every
@@ -14,7 +14,7 @@ import { groupChords } from '../chords/names';
 
 export const MINUTE_SECONDS = 60;
 /** The minute round is offered from the first level with changes. */
-export const MINUTE_FROM_LEVEL = 5;
+export const MINUTE_FROM_LEVEL = 6;
 /** Alternations generated for the minute round (never reached: 60 s at one change per second would be 60). */
 const REPEATS = 40;
 

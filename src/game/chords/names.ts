@@ -35,13 +35,17 @@ export function changeFromOf(itemId: string): string {
   return i >= 0 ? rest.slice(0, i) : '';
 }
 
-/** Splits an exercise's targets into chords: a run of targets with the same itemId is one chord. */
+/**
+ * Splits an exercise's targets into chords: by the `chord` ordinal of each target when the generator gives it; otherwise
+ * every `chord` target is a chord of its own (a chord may be repeated) and a run of note targets with the same itemId is one.
+ */
 export function groupChords(exercise: Exercise): ChordGroup[] {
   const groups: ChordGroup[] = [];
   let prevName = '';
   exercise.targets.forEach((t, i) => {
     const last = groups[groups.length - 1];
-    if (last && exercise.targets[last.first].itemId === t.itemId) {
+    const same = t.chord !== undefined ? exercise.targets[last?.first ?? 0]?.chord === t.chord : t.kind.type !== 'chord' && exercise.targets[last?.first ?? 0]?.itemId === t.itemId;
+    if (last && same) {
       last.count++;
       return;
     }

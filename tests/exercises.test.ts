@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FIRST_BATCH, MAX_LEVEL, fretsZone, generate, scalesZone, stringsZone } from '../src/exercises';
+import { PAIRS } from '../src/exercises/chords';
 import type { Exercise, SkillId } from '../src/model/exercise';
 import { INSTRUMENTS, midiAt, type InstrumentId } from '../src/model/instrument';
 
@@ -159,17 +160,64 @@ describe('physical playability', () => {
 
 describe('chords', () => {
   it('guitar: shapes match midis; changes get "A>B" ids; new chords appear by level', () => {
-    const l4 = generate('chords', { instrument: 'guitar', level: 4, seed: 1, length: 12 });
-    const names = new Set(l4.targets.map((t) => (t.kind.type === 'chord' ? t.kind.name : '')));
-    expect(names.has('G') && names.has('C')).toBe(true);
-    const l5 = generate('chords', { instrument: 'guitar', level: 5, seed: 1 });
-    expect(l5.targets.slice(1).every((t) => /^chords:\w+>\w+$/.test(t.itemId))).toBe(true);
-    const l7 = generate('chords', { instrument: 'guitar', level: 7, seed: 1 });
-    expect(l7.targets.some((t) => t.kind.type === 'chord' && t.kind.name === 'F')).toBe(true);
+    const names = (level: number, seed = 1, length = 12) => generate('chords', { instrument: 'guitar', level, seed, length }).targets.map((t) => (t.kind.type === 'chord' ? t.kind.name : ''));
+    const l4 = names(4);
+    expect(l4).toContain('G');
+    expect(l4).not.toContain('C'); // G and C come in separate levels
+    expect(names(5)).toContain('C');
+    const l6 = generate('chords', { instrument: 'guitar', level: 6, seed: 1 });
+    expect(l6.targets.slice(1).every((t) => /^chords:\w+>\w+$/.test(t.itemId))).toBe(true);
     const l8 = generate('chords', { instrument: 'guitar', level: 8, seed: 1 });
-    expect(l8.targets.every((t) => t.kind.type === 'chord' && /5$/.test(t.kind.name))).toBe(true);
+    expect(l8.targets.some((t) => t.kind.type === 'chord' && t.kind.name === 'F')).toBe(true);
+    const l9 = generate('chords', { instrument: 'guitar', level: 9, seed: 1 });
+    expect(l9.targets.every((t) => t.kind.type === 'chord' && /5$/.test(t.kind.name))).toBe(true);
     const em = generate('chords', { instrument: 'guitar', level: 1, seed: 1 }).targets.find((t) => t.kind.type === 'chord' && t.kind.name === 'Em')!;
     if (em.kind.type === 'chord') expect(em.kind.midis).toEqual([40, 47, 52, 55, 59, 64]);
+  });
+
+  it('guitar levels 1-5: every chord is repeated 2-4 times in a row, so level 1 is not a change exercise', () => {
+    for (let level = 1; level <= 5; level++)
+      for (let seed = 1; seed <= 20; seed++) {
+        const seq = generate('chords', { instrument: 'guitar', level, seed, length: 8 }).targets.map((t) => (t.kind.type === 'chord' ? t.kind.name : ''));
+        const runs: number[] = [];
+        seq.forEach((c, i) => (i > 0 && c === seq[i - 1] ? runs[runs.length - 1]++ : runs.push(1)));
+        // every run but the last (cut by the length) has 2-4 repetitions
+        for (const n of runs.slice(0, -1)) expect(n, `L${level} s${seed} ${seq}`).toBeGreaterThanOrEqual(2);
+        expect(Math.max(...runs), `L${level} s${seed} ${seq}`).toBeLessThanOrEqual(4);
+        expect(runs.length).toBeGreaterThanOrEqual(2); // but there is more than one chord
+      }
+  });
+
+  it('guitar: the first levels introduce one thing each (Em+Am, +E+A, +D, +G, +C) and never use chords from later levels', () => {
+    const allowed: string[][] = [['Em', 'Am'], ['Em', 'Am', 'E', 'A'], ['Em', 'Am', 'E', 'A', 'D'], ['Em', 'Am', 'E', 'A', 'D', 'G'], ['Em', 'Am', 'E', 'A', 'D', 'G', 'C']];
+    const fresh = [['Em', 'Am'], ['E', 'A'], ['D'], ['G'], ['C']];
+    for (let level = 1; level <= 5; level++)
+      for (let seed = 1; seed <= 20; seed++) {
+        const seq = new Set(generate('chords', { instrument: 'guitar', level, seed, length: 8 }).targets.map((t) => (t.kind.type === 'chord' ? t.kind.name : '')));
+        for (const c of seq) expect(allowed[level - 1]).toContain(c);
+        for (const c of fresh[level - 1]) expect(seq.has(c), `L${level} s${seed} lacks the new chord ${c}`).toBe(true);
+      }
+  });
+
+  it('guitar level 6 (change between two chords) takes its pair from the easiest of the progressive list', () => {
+    const easy = new Set(PAIRS.slice(0, 5).map((p) => p.join('-')));
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 40; seed++) {
+      const seq = generate('chords', { instrument: 'guitar', level: 6, seed, length: 8 }).targets.map((t) => (t.kind.type === 'chord' ? t.kind.name : ''));
+      const pair = [seq[0], seq[1]].join('-');
+      expect(easy.has(pair), pair).toBe(true);
+      seq.forEach((c, i) => expect(c).toBe(seq[i % 2]));
+      seen.add(pair);
+    }
+    expect(seen.size).toBeGreaterThan(1);
+  });
+
+  it('a short exercise (placement probe) still has two different chords', () => {
+    for (let level = 1; level <= 5; level++)
+      for (let seed = 1; seed <= 20; seed++) {
+        const t = generate('chords', { instrument: 'guitar', level, seed, length: 4 }).targets;
+        expect(new Set(t.map((x) => x.itemId)).size, `L${level} s${seed}`).toBeGreaterThanOrEqual(2);
+      }
   });
 
   it('bass: root, fifth, octave as note targets', () => {

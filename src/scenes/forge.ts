@@ -60,7 +60,7 @@ function heatColor(heat: number): number {
 /**
  * Forja: the sober LEARN game for chords. The chord box shows the shape; you strum until it sounds right. After each strum the
  * verdict says which tones were heard (their strings light up), which are missing and on which string, and whether a note of
- * another chord sounded. No clock, no penalty. At change levels (5-9) a second part, "un minuto de cambios", counts the clean
+ * another chord sounded. No clock, no penalty. At change levels (6-9) a second part, "un minuto de cambios", counts the clean
  * changes between the two chords in 60 s; level 10 is a timed progression. Bass: the three notes of the chord, in order.
  * Keys: S skip, H hear the chord, Enter / R at the end of the round.
  */

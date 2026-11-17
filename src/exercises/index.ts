@@ -47,8 +47,8 @@ const LEVELS: Partial<Record<SkillId, string[]>> = {
     'Púa alterna entre dos cuerdas', 'Púa alterna a tempo', 'Púa alterna por tres cuerdas', 'Púa alterna con saltos', 'Púa alterna en corcheas',
   ],
   chords: [
-    'Mi menor y La menor', 'Mi y La', 'Re', 'Sol y Do', 'Cambio entre dos acordes',
-    'Cambios entre acordes abiertos', 'Fa con cejilla', 'Acordes de potencia', 'Cambios con todo', 'Progresión a tempo',
+    'Mi menor y La menor', 'Mi y La', 'Re', 'Sol', 'Do',
+    'Cambio entre dos acordes', 'Cambios entre acordes abiertos', 'Fa con cejilla', 'Acordes de potencia', 'Progresión a tempo',
   ],
   scales: [
     'Pentatónica menor, primera posición', 'Subir y bajar', 'Escala mayor', 'Terceras en la pentatónica', 'Terceras en la mayor',

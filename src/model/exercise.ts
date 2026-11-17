@@ -31,6 +31,8 @@ export interface Target {
   beat?: number;
   /** Length in beats, for held notes. */
   beats?: number;
+  /** Chord exercises: ordinal of the chord this target belongs to (a bass chord is 3-4 note targets, and a chord may repeat). */
+  chord?: number;
 }
 
 export interface Exercise {

@@ -5,16 +5,18 @@
  * Bass: the same chords as individual `note` targets: root, fifth, octave (from level 8: root, fifth,
  * octave, fifth).
  *
- * Levels:
- *  1 Em, Am   2 + E, A   3 + D   4 + G, C   (single chords)
- *  5 changes between two open chords   6 changes among the open chords
- *  7 + F barre   8 power chords   9 changes among everything   10 timed progression (one chord per bar)
+ * Guitar levels (ONE new difficulty each; levelLabel has the same table):
+ *  1 Em and Am   2 + E, A   3 + D   4 + G   5 + C      (single chords: each one is played 2-4 times in a row
+ *                                                       before moving to the next, so the first levels are about
+ *                                                       the SHAPE and the changes are slow)
+ *  6 changes between two chords (a pair from the progressive list PAIRS, the easiest ones by seed)
+ *  7 changes among the open chords   8 + F barre   9 power chords   10 timed progression (one chord per bar)
  *
  * itemIds: "chords:Em" for a chord on its own, "chords:Em>Am" for the change into Am.
  */
 import { INSTRUMENTS, midiAt, positionsFor, type FretPos, type Instrument } from '../model/instrument';
 import type { Exercise, Target } from '../model/exercise';
-import { clampLevel, DEFAULT_LENGTH, exerciseId, makeRng, pick, shuffle, type GenerateOptions } from './common';
+import { clampLevel, DEFAULT_LENGTH, exerciseId, makeRng, pick, pickInt, shuffle, type GenerateOptions } from './common';
 
 interface ChordDef {
   name: string;
@@ -44,8 +46,14 @@ export const CHORDS: Record<string, ChordDef> = {
 const OPEN = ['Em', 'Am', 'E', 'A', 'D', 'G', 'C'];
 const POWER = ['E5', 'G5', 'A5', 'C5', 'D5'];
 
+/** Pairs for the "change between two chords" level, from the easiest change to harder ones (seeds pick among the first PAIR_LEVELS). */
+export const PAIRS: [string, string][] = [['Em', 'Am'], ['Am', 'E'], ['E', 'A'], ['A', 'D'], ['D', 'G'], ['G', 'C'], ['C', 'Am']];
+const EASY_PAIRS = 5;
+
 interface Spec {
   mode: 'single' | 'changes';
+  /** Single chords played in runs: each chord is repeated 2-4 times before the next one. */
+  runs?: boolean;
   pool: string[];
   /** Chords that must appear (the new ones of this level). */
   required: string[];
@@ -61,15 +69,15 @@ const BASS4 = ['root', 'fifth', 'octave', 'fifth'] as const;
 const mk = (s: Omit<Spec, 'bassPattern'> & { bassPattern?: Spec['bassPattern'] }): Spec => ({ bassPattern: [...BASS], ...s });
 
 const SPECS: Spec[] = [
-  mk({ mode: 'single', pool: ['Em', 'Am'], required: ['Em', 'Am'] }),
-  mk({ mode: 'single', pool: ['Em', 'Am', 'E', 'A'], required: ['E', 'A'] }),
-  mk({ mode: 'single', pool: ['Em', 'Am', 'E', 'A', 'D'], required: ['D'] }),
-  mk({ mode: 'single', pool: OPEN, required: ['G', 'C'] }),
+  mk({ mode: 'single', runs: true, pool: ['Em', 'Am'], required: ['Em', 'Am'] }),
+  mk({ mode: 'single', runs: true, pool: ['Em', 'Am', 'E', 'A'], required: ['E', 'A'] }),
+  mk({ mode: 'single', runs: true, pool: ['Em', 'Am', 'E', 'A', 'D'], required: ['D'] }),
+  mk({ mode: 'single', runs: true, pool: ['Em', 'Am', 'E', 'A', 'D', 'G'], required: ['G'] }),
+  mk({ mode: 'single', runs: true, pool: OPEN, required: ['C'] }),
   mk({ mode: 'changes', pool: OPEN, required: [], pair: true }),
   mk({ mode: 'changes', pool: OPEN, required: [] }),
   mk({ mode: 'changes', pool: [...OPEN, 'F'], required: ['F'], startWithRequired: true }),
   mk({ mode: 'changes', pool: POWER, required: ['E5'], startWithRequired: true, bassPattern: [...BASS4] }),
-  mk({ mode: 'changes', pool: [...OPEN, 'F', ...POWER], required: ['F', 'G5'], bassPattern: [...BASS4] }),
   mk({ mode: 'changes', pool: [...OPEN.filter((c) => c !== 'E' && c !== 'A'), 'F'], required: [], timed: true, bassPattern: [...BASS4] }),
 ];
 
@@ -110,11 +118,27 @@ export function bassNotes(inst: Instrument, name: string): { kind: 'root' | 'fif
   return picked.map((pos, i) => ({ kind: kinds[i], midi: midis[i], pos }));
 }
 
+/** Runs of one chord: new chords first (shuffled), then random ones from the pool; each repeated 2-4 times. */
+function buildRuns(spec: Spec, length: number, r: () => number): string[] {
+  const seq: string[] = [];
+  const queue = shuffle(r, spec.required);
+  // With few targets (placement probes) runs are capped so that at least two different chords appear.
+  const maxRun = Math.max(2, Math.min(4, Math.floor(length / 2)));
+  while (seq.length < length) {
+    const prev = seq[seq.length - 1];
+    const next = queue.length ? queue.shift()! : pick(r, spec.pool.filter((c) => c !== prev));
+    const reps = 2 + pickInt(r, maxRun - 1);
+    for (let k = 0; k < reps && seq.length < length; k++) seq.push(next);
+  }
+  return seq;
+}
+
 function buildSequence(spec: Spec, length: number, r: () => number): string[] {
   if (spec.pair) {
-    const two = shuffle(r, spec.pool).slice(0, 2);
+    const two = [...PAIRS[pickInt(r, EASY_PAIRS)]];
     return Array.from({ length }, (_, i) => two[i % 2]);
   }
+  if (spec.runs) return buildRuns(spec, length, r);
   const seq: string[] = [];
   const queue = shuffle(r, spec.required);
   if (spec.startWithRequired && queue.length) seq.push(queue.shift()!);
@@ -149,6 +173,7 @@ export function generateChords(opts: GenerateOptions): Exercise {
       const t: Target = {
         itemId,
         kind: { type: 'chord', name, midis: shape.map((p) => midiAt(inst, p)), shape },
+        chord: i,
       };
       if (spec.timed) t.beat = i * 4;
       targets.push(t);
@@ -156,7 +181,7 @@ export function generateChords(opts: GenerateOptions): Exercise {
       const notes = bassNotes(inst, name);
       spec.bassPattern.forEach((role, k) => {
         const n = notes.find((x) => x.kind === role)!;
-        const t: Target = { itemId, kind: { type: 'note', midi: n.midi, pos: n.pos } };
+        const t: Target = { itemId, kind: { type: 'note', midi: n.midi, pos: n.pos }, chord: i };
         if (spec.timed) t.beat = i * 4 + k;
         targets.push(t);
       });
