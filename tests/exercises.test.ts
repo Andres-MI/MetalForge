@@ -336,6 +336,16 @@ describe('rhythm: el primer compás empieza en el tiempo 1', () => {
 });
 
 describe('scales', () => {
+  it('level 10 adds only the clock: same position as level 6, timed (the random positions stay in levels 7 and 9)', () => {
+    for (let seed = 1; seed <= 8; seed++) {
+      const l6 = generate('scales', { instrument: 'guitar', level: 6, seed });
+      const l10 = generate('scales', { instrument: 'guitar', level: 10, seed });
+      expect(l10.timed).toBe(true);
+      expect(l6.timed).toBe(false);
+      expect(l10.targets.map((t) => t.itemId)).toEqual(l6.targets.map((t) => t.itemId));
+    }
+  });
+
   it('the ordered run starts and ends on the tonic, in every level, instrument and seed (thirds: only the start)', () => {
     const rootOf = (id: string) => (id.startsWith('scales:major') ? 0 : 9);
     for (const instrument of ['guitar', 'bass4', 'bass5'] as const)
@@ -366,9 +376,10 @@ describe('scales', () => {
     expect(ex.targets.length).toBe(6);
     expect(ex.targets.every((t) => t.kind.type === 'anyOf')).toBe(true);
   });
-  it('rhythm tempo rises gently', () => {
+  it('rhythm tempo changes per tier of three levels, never together with a new cell', () => {
     const bpms = levels.map((l) => generate('rhythm', { instrument: 'guitar', level: l, seed: 1 }).bpm!);
-    for (let i = 1; i < bpms.length; i++) expect(bpms[i]).toBeGreaterThan(bpms[i - 1]);
+    expect(bpms).toEqual([60, 60, 60, 66, 66, 66, 72, 72, 72, 78]);
+    for (let i = 1; i < bpms.length; i++) expect(bpms[i]).toBeGreaterThanOrEqual(bpms[i - 1]);
     expect(bpms[9] - bpms[0]).toBeLessThanOrEqual(40);
   });
 });

@@ -5,7 +5,7 @@
  *  1 quarters   2 + rests   3 steady eighths   4 mixed quarters/eighths/rests   5 + syncopation
  *  6 + sixteenths   7 + mixed eighth/sixteenth cells   8 + syncopated sixteenths   9 + triplets
  *  10 dense mix of everything
- * Tempo rises gently: 60 bpm at level 1, +3 bpm per level.
+ * Tempo changes per TIER of three levels, never on top of a new cell: 60 bpm at levels 1-3, 66 at 4-6, 72 at 7-9, 78 at 10.
  */
 import type { Exercise, Target } from '../model/exercise';
 import { clampLevel, DEFAULT_LENGTH, exerciseId, makeRng, pick, shuffle, type GenerateOptions } from './common';
@@ -47,7 +47,7 @@ const SPECS: Spec[] = [
 ];
 
 export function rhythmBpm(level: number): number {
-  return 60 + 3 * (clampLevel(level) - 1);
+  return 60 + 6 * Math.floor((clampLevel(level) - 1) / 3);
 }
 
 /** A cell that sounds exactly on its beat (the others, rests and off-beat cells, leave the beat empty). */

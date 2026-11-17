@@ -157,7 +157,7 @@ describe('Judge: ventanas recortadas al hueco entre notas', () => {
   });
 
   it('semicorcheas a 75 bpm en bajo: una pulsación a media distancia no es acierto de la vecina', () => {
-    const ex = rhythmEx('bass4', 6);
+    const ex = { ...rhythmEx('bass4', 6), bpm: 75 }; // the tempo the bug was seen at (level 6 used to be 75 bpm)
     const w = clampWindows(windowsFor('bass4'), ex);
     expect(minTargetGap(ex)).toBeCloseTo(0.2, 3);
     expect(w.hit).toBeLessThan(0.07); // before: 0.12, i.e. +/-0.12 s around notes only 0.20 s apart
