@@ -115,7 +115,7 @@ export class PlacementScene extends Phaser.Scene {
   private header(done: ProbeResult[], skill: string, level: number): void {
     const { index, max } = probeProgress(done);
     this.say(W / 2, 6, `SONDEO ${index} DE HASTA ${max}`, { color: 'magenta', align: 'center' });
-    this.say(W / 2, 17, `${SKILL_ES[skill]} · nivel ${level} · ${fit(levelLabel(skill as never, level), 150)}`, { color: SKILL_COLOR[skill], align: 'center' });
+    this.say(W / 2, 17, `${SKILL_ES[skill]} · nivel ${level} · ${fit(levelLabel(skill as never, level, profileStore(this).profile.instrument ?? 'guitar'), 150)}`, { color: SKILL_COLOR[skill], align: 'center' });
     const g = this.add.graphics();
     for (let i = 0; i < max; i++) {
       const r = done[i];

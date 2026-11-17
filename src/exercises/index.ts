@@ -1,5 +1,6 @@
 /** Exercise generators for the first batch of skills. Pure and deterministic: no browser APIs. */
 import type { Exercise, SkillId } from '../model/exercise';
+import type { InstrumentId } from '../model/instrument';
 import { generateChords } from './chords';
 import type { GenerateOptions } from './common';
 import { generateFrets } from './frets';
@@ -56,7 +57,22 @@ const LEVELS: Partial<Record<SkillId, string[]>> = {
   ],
 };
 
-/** Short Spanish description of what a level adds, for menus and lesson headers. */
-export function levelLabel(skill: SkillId, level: number): string {
-  return LEVELS[skill]?.[Math.min(10, Math.max(1, Math.round(level))) - 1] ?? '';
+/**
+ * Bass labels that differ from the guitar ones: chords have their own level plan (see exercises/chords.ts: a bass plays
+ * the root, fifth and octave of each chord, there are no barre or power chords) and "Púa alterna" is "Alternancia"
+ * (a bass is often played with the fingers).
+ */
+const BASS_LEVELS: Partial<Record<SkillId, string[]>> = {
+  strings: LEVELS.strings!.map((l) => l.replace('Púa alterna', 'Alternancia')),
+  chords: [
+    'Mi y La: raíz, quinta y octava', 'Re, Sol y Do: la forma cerrada', 'Cambio entre dos raíces', 'Patrón de cuatro notas',
+    'Cambios con la raíz en la cuerda La', 'Cambios entre todas las raíces', 'Fa', 'Cambios con el patrón de cuatro notas',
+    'Raíz en la cuerda Mi o La', 'Línea a tempo sobre una progresión',
+  ],
+};
+
+/** Short Spanish description of what a level adds, for menus and lesson headers (the bass has its own for chords and strings). */
+export function levelLabel(skill: SkillId, level: number, instrument?: InstrumentId): string {
+  const table = instrument && instrument !== 'guitar' ? BASS_LEVELS[skill] ?? LEVELS[skill] : LEVELS[skill];
+  return table?.[Math.min(10, Math.max(1, Math.round(level))) - 1] ?? '';
 }

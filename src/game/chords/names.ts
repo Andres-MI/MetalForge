@@ -62,11 +62,12 @@ export function groupIndexOf(groups: ChordGroup[], targetIndex: number): number 
   return 0;
 }
 
-/** Spanish name of a chord: "Mi menor", "Sol mayor", "Mi 5" (power chord). */
-export function chordLabel(name: string): string {
+/** Spanish name of a chord: "Mi menor", "Sol mayor", "Mi 5" (power chord); on a bass just its root: "Mi". */
+export function chordLabel(name: string, instrument?: InstrumentId): string {
   const def = CHORDS[name];
   if (!def) return name;
   const root = noteName(def.rootPc);
+  if (instrument && instrument !== 'guitar') return root;
   if (/5$/.test(name)) return `${root} 5`;
   if (/m$/.test(name)) return `${root} menor`;
   return `${root} mayor`;

@@ -96,7 +96,7 @@ export class LevelSelectScene extends Phaser.Scene {
     this.frames.clear();
     for (let k = 1; k <= MAX_LEVEL; k++) panel(this.frames, x0 + (k - 1) * (BOX + GAP), BOX_Y, BOX, BOX, k === l ? def.accent : 'dim', 'deep', k === l ? 0.95 : 0.6);
     this.frames.lineStyle(1, paletteInt(def.accent), 0.5).strokeRect(x0 + (l - 1) * (BOX + GAP) - 1.5, BOX_Y - 1.5, BOX + 3, BOX + 3);
-    const text = levelLabel(def.skill, l);
+    const text = levelLabel(def.skill, l, profileStore(this).profile.instrument ?? 'guitar');
     const scale = measureText(text) * 2 <= W - 16 ? 2 : 1;
     placeText(this.label, W / 2, scale === 2 ? 76 : 80, text, { scale, color: def.accent, align: 'center' });
 

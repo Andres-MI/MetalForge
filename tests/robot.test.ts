@@ -94,6 +94,16 @@ describe('chords (strums of the guitar, recognised by the real detector)', () =>
   });
 });
 
+describe('bass chord levels with the real detector', () => {
+  for (const instrument of ['bass4', 'bass5'] as InstrumentId[])
+    for (const level of [1, 2, 3, 4, 5, 7, 9, 10]) {
+      it(`${instrument} L${level}: the perfect robot scores > 95% (closed 1-5-8 shapes, registers, timed line)`, () => {
+        const ex = generate('chords', { instrument, level, seed: 4, length: 3 });
+        expect(runRobot(ex, { seed: 3 }).summary.accuracy).toBeGreaterThan(0.95);
+      });
+    }
+});
+
 describe('chord robot (spectral verification)', () => {
   const levels = [1, 3, 4, 6, 9];
   for (const level of levels) {

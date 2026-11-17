@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FIRST_BATCH, MAX_LEVEL, fretsZone, generate, scalesZone, stringsZone } from '../src/exercises';
+import { CHORDS, FIRST_BATCH, MAX_LEVEL, bassNotes, fretsZone, generate, levelLabel, scalesZone, stringsZone } from '../src/exercises';
 import { PAIRS } from '../src/exercises/chords';
 import type { Exercise, SkillId } from '../src/model/exercise';
 import { INSTRUMENTS, midiAt, type InstrumentId } from '../src/model/instrument';
@@ -232,6 +232,86 @@ describe('chords', () => {
         expect(r).toBeLessThan(40);
       }
     }
+  });
+
+  it('bass: the closed 1-5-8 shape (fret r, r+2, r+2 on adjacent strings), compact for every root and register', () => {
+    for (const id of ['bass4', 'bass5'] as const) {
+      const inst = INSTRUMENTS[id];
+      for (const name of ['E', 'A', 'D', 'G', 'C', 'F'])
+        for (const reg of ['near', 'A'] as const) {
+          const [r, f, o] = bassNotes(inst, name, reg);
+          const tag = `${id} ${name} ${reg}`;
+          expect(f.midi - r.midi, tag).toBe(7);
+          expect(o.midi - r.midi, tag).toBe(12);
+          expect(f.pos.fret, tag).toBe(r.pos.fret + 2);
+          expect(o.pos.fret, tag).toBe(r.pos.fret + 2);
+          expect(f.pos.string, tag).toBe(r.pos.string + 1);
+          expect(o.pos.string, tag).toBe(r.pos.string + 2);
+          expect(midiAt(inst, r.pos), tag).toBe(r.midi);
+          expect(midiAt(inst, o.pos), tag).toBe(o.midi);
+          expect(r.pos.fret, tag).toBeLessThanOrEqual(12);
+        }
+    }
+    // D no longer jumps 7 frets (was D2 open, A2 at 7, D3 at 7): root on the A string at 5, shape 5-7-7
+    expect(bassNotes(INSTRUMENTS.bass4, 'D').map((n) => n.pos.fret)).toEqual([5, 7, 7]);
+    // open roots only where they keep the shape compact: E and A
+    expect(bassNotes(INSTRUMENTS.bass4, 'E')[0].pos).toEqual({ string: 0, fret: 0 });
+    expect(bassNotes(INSTRUMENTS.bass4, 'A')[0].pos).toEqual({ string: 1, fret: 0 });
+  });
+
+  it('bass levels: 1 is E and A, 2 adds D, G, C (different content), and no itemId splits E from Em', () => {
+    for (const id of ['bass4', 'bass5'] as const)
+      for (let seed = 1; seed <= 10; seed++) {
+        const roots = (level: number) => new Set(generate('chords', { instrument: id, level, seed, length: 8 }).targets.map((t) => t.itemId.replace('chords:', '')));
+        expect([...roots(1)].every((n) => n === 'E' || n === 'A')).toBe(true);
+        expect(roots(1).size).toBe(2);
+        for (const c of ['D', 'G', 'C']) expect(roots(2).has(c), `${id} s${seed} L2 lacks ${c}`).toBe(true);
+        for (let level = 1; level <= 10; level++)
+          for (const t of generate('chords', { instrument: id, level, seed, length: 8 }).targets) expect(t.itemId).not.toMatch(/m\b|m>|>\w*m$/);
+      }
+  });
+
+  it('bass levels 1, 2 and 4 repeat each chord; 3 is a pair; 4 uses four notes; 5 keeps every root on the A string', () => {
+    for (let seed = 1; seed <= 10; seed++) {
+      const g = (level: number) => {
+        const ex = generate('chords', { instrument: 'bass4', level, seed, length: 8 });
+        const per = level === 4 || level >= 8 ? 4 : 3;
+        return { ex, chords: ex.targets.filter((_, i) => i % per === 0) };
+      };
+      for (const level of [1, 2, 4]) {
+        const { chords } = g(level);
+        expect(chords.some((t, i) => i > 0 && t.itemId === chords[i - 1].itemId), `L${level} s${seed}`).toBe(true);
+      }
+      const l3 = g(3).chords.map((t) => t.itemId.replace('chords:', '').split('>').pop());
+      expect(new Set(l3).size).toBe(2);
+      expect(generate('chords', { instrument: 'bass4', level: 4, seed }).targets.length % 4).toBe(0);
+      const l5 = generate('chords', { instrument: 'bass4', level: 5, seed, length: 8 });
+      for (let i = 0; i < l5.targets.length; i += 3) expect((l5.targets[i].kind as { pos: { string: number } }).pos.string).toBe(1);
+    }
+  });
+
+  it('bass level 10 is a timed I-IV-V-I line, four notes per bar', () => {
+    for (const id of ['bass4', 'bass5'] as const)
+      for (let seed = 1; seed <= 8; seed++) {
+        const ex = generate('chords', { instrument: id, level: 10, seed });
+        expect(ex.timed).toBe(true);
+        expect(ex.targets).toHaveLength(16);
+        expect(ex.targets.map((t) => t.beat)).toEqual(Array.from({ length: 16 }, (_, i) => i));
+        const names = ex.targets.filter((_, i) => i % 4 === 0).map((t) => t.itemId.split('>').pop()!.replace('chords:', ''));
+        const pc = (n: string) => CHORDS[n].rootPc;
+        expect([0, 1, 2, 3].map((i) => (pc(names[i]) - pc(names[0]) + 12) % 12)).toEqual([0, 5, 7, 0]);
+      }
+  });
+
+  it('level labels: the bass has its own for chords and "Alternancia" instead of "Púa alterna"', () => {
+    expect(levelLabel('chords', 2, 'bass4')).not.toBe(levelLabel('chords', 2, 'guitar'));
+    for (let l = 1; l <= 10; l++) {
+      expect(levelLabel('chords', l, 'bass5')).not.toMatch(/cejilla|potencia/i);
+      expect(levelLabel('chords', l, 'bass4')).not.toBe('');
+    }
+    expect(levelLabel('strings', 6, 'guitar')).toMatch(/Púa alterna/);
+    expect(levelLabel('strings', 6, 'bass4')).toBe('Alternancia entre dos cuerdas');
+    expect(levelLabel('chords', 8)).toBe('Fa con cejilla');
   });
 
   it('level 10 is a timed progression on every instrument', () => {

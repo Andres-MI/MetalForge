@@ -1,5 +1,5 @@
 /**
- * Forja's second part at change levels (6-9): "un minuto de cambios". The player alternates between the two chords of
+ * Forja's second part at change levels: "un minuto de cambios". The player alternates between the two chords of
  * the change and counts CLEAN changes in 60 s. Pure: the time is injected (`now`, seconds of the session/input clock).
  *
  * The first accepted chord is the starting position and starts the minute (it is not a change). From then on every
@@ -13,8 +13,6 @@ import type { ProfileStore } from '../../profile/store';
 import { groupChords } from '../chords/names';
 
 export const MINUTE_SECONDS = 60;
-/** The minute round is offered from the first level with changes. */
-export const MINUTE_FROM_LEVEL = 6;
 /** Alternations generated for the minute round (never reached: 60 s at one change per second would be 60). */
 const REPEATS = 40;
 
@@ -69,13 +67,14 @@ export function pairKey(a: string, b: string): string {
 
 /**
  * The exercise of the minute round: the first two chords of a change level's round, alternated many times (guitar: one
- * chord target each; bass: its note targets). itemIds are "chords:A>B" / "chords:B>A". Null when the round has no two
- * different chords, or for levels without changes (below 5) and the timed one.
+ * chord target each; bass: its note targets). itemIds are "chords:A>B" / "chords:B>A". Null when the round is not a
+ * change exercise (its second chord is not a change from the first: the single-chord levels repeat each chord) and for
+ * the timed one.
  */
-export function minuteExercise(base: Exercise, level: number): { exercise: Exercise; pair: [string, string] } | null {
-  if (base.timed || level < MINUTE_FROM_LEVEL) return null;
+export function minuteExercise(base: Exercise): { exercise: Exercise; pair: [string, string] } | null {
+  if (base.timed) return null;
   const groups = groupChords(base);
-  if (groups.length < 2 || groups[0].name === groups[1].name) return null;
+  if (groups.length < 2 || groups[0].name === groups[1].name || !base.targets[groups[1].first].itemId.includes('>')) return null;
   const [a, b] = groups;
   const take = (g: typeof a): Target[] => base.targets.slice(g.first, g.first + g.count);
   const ta = take(a);
