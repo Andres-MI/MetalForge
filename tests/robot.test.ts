@@ -26,6 +26,16 @@ describe('perfect robot', () => {
       }
 });
 
+describe('perfect robot with the clamped windows (dense rhythm)', () => {
+  for (const instrument of ['guitar', 'bass4', 'bass5'] as InstrumentId[])
+    for (const level of [6, 8, 9, 10]) {
+      it(`rhythm L${level} on ${instrument} still scores > 95% when windows are narrowed to the gap`, () => {
+        const ex = generate('rhythm', { instrument, level, seed: 2, length: 12 });
+        expect(runRobot(ex, { seed: 3 }).summary.accuracy).toBeGreaterThan(0.95);
+      });
+    }
+});
+
 describe('imperfect robots', () => {
   for (const instrument of INSTS) {
     const ex = generate('strings', { instrument, level: 10, seed: 5, length: 20 });

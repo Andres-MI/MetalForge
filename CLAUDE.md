@@ -90,7 +90,7 @@ de construcción y sus prompts en `docs/FASES.md`.
   length})`): ritmo, trastes, cuerdas, acordes y escalas. Cada nivel añade UNA dificultad; `itemId` estables.
   Las zonas (`fretsZone`, `stringsZone`, `scalesZone`) no repiten tono: se prueba en `tests/exercises.test.ts`.
 - `src/scoring/` — `Judge`: consume `DetectorEvent` y un `Exercise` y da un `TargetResult` por objetivo (con
-  ventanas acierto/pronto/tarde, más anchas en bajo). Los acordes pasan por `ChordVerifier`: con `spectralChords` el Judge
+  ventanas acierto/pronto/tarde, más anchas en bajo, recortadas por ejercicio a 0,3 y 0,6 veces el hueco mínimo entre notas, con suelo 0,04 s: `clampWindows`). Los acordes pasan por `ChordVerifier`: con `spectralChords` el Judge
   espera el evento `strum` y `spectralChordVerifier` lo lee (todas las notas del acorde presentes y ninguna contradictoria;
   `ScoredTarget.chord` trae `missing`, `contradicted` y `cleanliness`); sin `strum` cae al verificador por tono.
   `chordSet.ts` deriva de la lista de acordes las notas contradictorias; umbrales en `CHORD_THRESHOLDS`. `summarize` da precisión, tendencia y estrellas.

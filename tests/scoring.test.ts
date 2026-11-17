@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { DetectorEvent } from '../src/detection/detector';
 import type { Exercise, Target } from '../src/model/exercise';
-import { Judge } from '../src/scoring';
+import { generate } from '../src/exercises';
+import { Judge, MIN_HIT_WINDOW, MIN_OUTER_WINDOW, clampWindows, minTargetGap, windowsFor } from '../src/scoring';
 
 const onset = (time: number): DetectorEvent => ({ type: 'onset', time, rms: 0.3 });
 const note = (time: number, midi: number): DetectorEvent => ({ type: 'note', time, emittedAt: time + 0.03, freq: 100, midi, clarity: 0.95 });
@@ -35,7 +36,7 @@ describe('Judge, timed', () => {
   });
 
   it('one event satisfies only one target', () => {
-    const ex = timedEx([n(40, 0), n(40, 0.1)]);
+    const ex = timedEx([n(40, 0), n(40, 0.25)]); // 0.25 s apart: windows are clamped to the gap, see the clamp tests below
     const j = new Judge(ex);
     j.push([note(0.05, 40)]);
     j.advance(5);
@@ -133,5 +134,52 @@ describe('Judge, chords', () => {
     const j = new Judge(timedEx([chord(0)]));
     j.push([onset(0.15), note(0.15, 40)]);
     expect(j.results()[0].judgement).toBe('late');
+  });
+});
+
+describe('Judge: ventanas recortadas al hueco entre notas', () => {
+  const rhythmEx = (inst: Exercise['instrument'], level: number) => generate('rhythm', { instrument: inst, level, seed: 1, length: 32 });
+
+  it('las ventanas por defecto nunca superan 0.3 y 0.6 veces el hueco mínimo (con suelo)', () => {
+    for (const inst of ['guitar', 'bass4', 'bass5'] as const) {
+      for (let level = 1; level <= 10; level++) {
+        const ex = rhythmEx(inst, level);
+        const gap = minTargetGap(ex);
+        const w = clampWindows(windowsFor(inst), ex);
+        expect(w.hit).toBeLessThanOrEqual(Math.max(MIN_HIT_WINDOW, 0.3 * gap) + 1e-9);
+        expect(w.outer).toBeLessThanOrEqual(Math.max(MIN_OUTER_WINDOW, 0.6 * gap) + 1e-9);
+        expect(w.hit).toBeGreaterThanOrEqual(MIN_HIT_WINDOW);
+        expect(w.hit).toBeLessThanOrEqual(windowsFor(inst).hit);
+      }
+    }
+  });
+
+  it('semicorcheas a 75 bpm en bajo: una pulsación a media distancia no es acierto de la vecina', () => {
+    const ex = rhythmEx('bass4', 6);
+    const w = clampWindows(windowsFor('bass4'), ex);
+    expect(minTargetGap(ex)).toBeCloseTo(0.2, 3);
+    expect(w.hit).toBeLessThan(0.07); // before: 0.12, i.e. +/-0.12 s around notes only 0.20 s apart
+    const t0 = ex.targets[0];
+    const t1 = ex.targets.find((t) => t.beat! > t0.beat!)!;
+    const gap = ((t1.beat! - t0.beat!) * 60) / ex.bpm!;
+    // a click exactly between two sixteenths is not a clean hit for either
+    const j = new Judge(ex);
+    j.push([onset(gap / 2)]);
+    j.advance(30);
+    expect(j.results().filter((r) => r.judgement === 'hit')).toHaveLength(0);
+  });
+
+  it('los huecos grandes dejan las ventanas como estaban y una ventana explícita manda', () => {
+    const quarters = rhythmEx('bass4', 1);
+    expect(clampWindows(windowsFor('bass4'), quarters)).toEqual(windowsFor('bass4'));
+    const dense = rhythmEx('guitar', 8);
+    const t = dense.targets[0];
+    const at = (t.beat! * 60) / dense.bpm! + 0.08; // 0.08 s late: outside the clamped hit window, inside an explicit one
+    const clamped = new Judge(dense);
+    clamped.push([onset(at)]);
+    const explicit = new Judge(dense, { windows: { hit: 0.1 } });
+    explicit.push([onset(at)]);
+    expect(clamped.results()[0].judgement).not.toBe('hit');
+    expect(explicit.results()[0].judgement).toBe('hit');
   });
 });

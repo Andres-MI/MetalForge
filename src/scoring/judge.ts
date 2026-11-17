@@ -39,6 +39,42 @@ export function windowsFor(instrument: InstrumentId): Windows {
   return instrument === 'guitar' ? WINDOWS_GUITAR : WINDOWS_BASS;
 }
 
+/**
+ * Floors of the clamp below. Detection needs at least about this much slack: the onset detector places an attack
+ * within ~20-30 ms of the real one, so a hit window narrower than +/-0.04 s would fail on correct playing, and an
+ * outer window narrower than +/-0.08 s would leave no room for "early/late" feedback.
+ */
+export const MIN_HIT_WINDOW = 0.04;
+export const MIN_OUTER_WINDOW = 0.08;
+/** Fractions of the smallest gap between consecutive timed targets: a window must never reach the neighbour. */
+export const HIT_GAP_FRACTION = 0.3;
+export const OUTER_GAP_FRACTION = 0.6;
+
+/** Smallest time (s) between two consecutive timed targets, or Infinity when there is none (untimed, one target). */
+export function minTargetGap(exercise: Exercise): number {
+  if (!exercise.timed || !exercise.bpm) return Infinity;
+  const beats = exercise.targets.map((t) => t.beat ?? 0).sort((a, b) => a - b);
+  let gap = Infinity;
+  for (let i = 1; i < beats.length; i++) {
+    const d = beats[i] - beats[i - 1];
+    if (d > 1e-6) gap = Math.min(gap, d);
+  }
+  return (gap * 60) / exercise.bpm;
+}
+
+/**
+ * The default windows of the instrument, narrowed so that `hit <= 0.3 x minGap` and `outer <= 0.6 x minGap`
+ * (sixteenths at 75 bpm are 0.20 s apart: the bass +/-0.12 s hit window used to swallow the neighbouring note).
+ * Never below MIN_HIT_WINDOW / MIN_OUTER_WINDOW, and never wider than the base.
+ */
+export function clampWindows(base: Windows, exercise: Exercise): Windows {
+  const gap = minTargetGap(exercise);
+  if (!Number.isFinite(gap)) return base;
+  const hit = Math.min(base.hit, Math.max(MIN_HIT_WINDOW, HIT_GAP_FRACTION * gap));
+  const outer = Math.min(base.outer, Math.max(MIN_OUTER_WINDOW, OUTER_GAP_FRACTION * gap, hit));
+  return { ...base, hit, outer };
+}
+
 export interface JudgeOptions {
   /** Seconds (detector clock) of beat 0 (timed) or of the moment the first target appears (untimed). Default 0. */
   startTime?: number;
@@ -97,7 +133,7 @@ export class Judge {
 
   constructor(exercise: Exercise, options: JudgeOptions = {}) {
     this.ex = exercise;
-    this.win = { ...windowsFor(exercise.instrument), ...options.windows };
+    this.win = { ...clampWindows(windowsFor(exercise.instrument), exercise), ...options.windows };
     this.start = options.startTime ?? 0;
     this.latency = options.latencyOffset ?? 0;
     this.spectral = options.spectralChords ?? false;
