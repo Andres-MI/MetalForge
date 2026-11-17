@@ -60,7 +60,7 @@ function heatColor(heat: number): number {
 /**
  * Forja: the sober LEARN game for chords. The chord box shows the shape; you strum until it sounds right. After each strum the
  * verdict says which tones were heard (their strings light up), which are missing and on which string, and whether a note of
- * another chord sounded. No clock, no penalty. At change levels (5-9) a second part, "un minuto de cambios", counts the clean
+ * another chord sounded. No clock, no penalty. At change levels a second part, "un minuto de cambios", counts the clean
  * changes between the two chords in 60 s; level 10 is a timed progression. Bass: the three notes of the chord, in order.
  * Keys: S skip, H hear the chord, Enter / R at the end of the round.
  */
@@ -77,7 +77,7 @@ export class ForgeScene extends Phaser.Scene {
     const inst = INSTRUMENTS[data.exercise.instrument];
     const isBass = inst.id !== 'guitar';
     const timed = data.exercise.timed;
-    const minuteDef = timed ? null : minuteExercise(data.exercise, data.level);
+    const minuteDef = timed ? null : minuteExercise(data.exercise);
 
     let session: GameSession = data.session;
     let ex: Exercise = data.exercise;
@@ -137,7 +137,7 @@ export class ForgeScene extends Phaser.Scene {
     // ---- static layout ----
     drawText(this, 8, 8, 'FORJA', { scale: 2, color: def.accent, depth: 10 });
     drawText(this, W - 8, 8, `NIVEL ${data.level}`, { color: 'foam', align: 'right', depth: 10 });
-    drawText(this, W - 8, 18, levelLabel('chords', data.level), { color: 'dim', align: 'right', depth: 10 });
+    drawText(this, W - 8, 18, levelLabel('chords', data.level, inst.id), { color: 'dim', align: 'right', depth: 10 });
     const progress = drawText(this, 8, 26, '', { color: 'dim', depth: 10 });
     const nameY = timed ? 54 : isBass ? 28 : 36;
     const labelY = isBass ? (timed ? 52 : 36) : nameY + 32;
@@ -183,7 +183,7 @@ export class ForgeScene extends Phaser.Scene {
       step = 0;
       groupWrongs = 0;
       placeText(nameText, isBass ? W / 2 : 128, nameY, gr.name, { scale: isBass ? 3 : 4, color: 'foam', align: isBass ? 'center' : 'left' });
-      placeText(labelText, isBass ? 8 : 128, labelY, chordLabel(gr.name), { color: 'cyan' });
+      placeText(labelText, isBass ? 8 : 128, labelY, chordLabel(gr.name, inst.id), { color: 'cyan' });
       if (!isBass) {
         box = drawChordBox(this, gr.name, 52, timed ? 70 : 66, { sx: 13, sy: 11, labels: true, depth: 4 });
         placeText(tonesText, 128, nameY + 44, `Notas: ${chordToneNames(gr.name).join(' · ')}`, { color: 'dim' });
@@ -240,7 +240,7 @@ export class ForgeScene extends Phaser.Scene {
       if (!isBass) {
         fb = chordFeedback(gr.name, r.chord, false);
         const head = fb.missing.length ? 'FALTA ALGO' : fb.foreign.length ? 'OTRO ACORDE' : 'TODAVÍA NO';
-        say(head, fb.missing.length ? 'amber' : 'violet', fb.missingText || (fb.foreign.length ? '' : `No suena como ${chordLabel(gr.name)}`), 'amber', fb.foreignText, 'violet');
+        say(head, fb.missing.length ? 'amber' : 'violet', fb.missingText || (fb.foreign.length ? '' : `No suena como ${chordLabel(gr.name, inst.id)}`), 'amber', fb.foreignText, 'violet');
         heatTo(Math.min(0.55, fb.cleanliness));
       } else {
         const heard = r.heard?.[0];
@@ -587,7 +587,7 @@ export class ForgeScene extends Phaser.Scene {
         group: Math.max(0, shown),
         groups: groups.length,
         name: gr.name,
-        label: chordLabel(gr.name),
+        label: chordLabel(gr.name, inst.id),
         tones: isBass ? ex.targets.slice(gr.first, gr.first + gr.count).map((x) => (x.kind.type === 'note' ? noteName(x.kind.midi) : '')) : chordToneNames(gr.name),
         midis: groupMidis(gr),
         awaited: { name: groupOf(curIndex()).name, midis: groupMidis(groupOf(curIndex())), next: ex.targets[curIndex()].kind.type === 'note' ? (ex.targets[curIndex()].kind as { midi: number }).midi : null },

@@ -1,4 +1,4 @@
-export { Judge, windowsFor, WINDOWS_GUITAR, WINDOWS_BASS, type JudgeOptions, type Windows } from './judge';
+export { Judge, windowsFor, clampWindows, minTargetGap, MIN_HIT_WINDOW, MIN_OUTER_WINDOW, WINDOWS_GUITAR, WINDOWS_BASS, type JudgeOptions, type Windows } from './judge';
 export {
   analyzeChord,
   CHORD_THRESHOLDS,

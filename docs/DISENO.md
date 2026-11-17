@@ -80,7 +80,7 @@ progreso.
 ## Bajo
 
 - Los juegos de cuerdas y trastes se ajustan solos al número de cuerdas.
-- Forja y Hechicero piden fundamental, quinta y octava en lugar del acorde completo.
+- Forja y Hechicero piden fundamental, quinta y octava en lugar del acorde completo, con la forma cerrada 1-5-8 (traste r, r+2, r+2 en cuerdas contiguas; la raíz al aire solo en Mi y La). El bajo tiene su propio plan de diez niveles (Mi y La; Re, Sol y Do; cambio entre dos raíces; patrón de cuatro notas; raíz en la cuerda La; cambios entre todas; Fa; cambios con cuatro notas; raíz en la cuerda Mi o La; línea a tempo I-IV-V-I) y nombra los acordes por su raíz: no hay «cejilla», «potencia» ni Mi frente a Mi menor.
 - Compás y Concierto pasan a ser encajar un patrón de bajo con un bombo.
 - Las ventanas de acierto son algo más amplias: las notas graves tardan más en reconocerse.
 
@@ -94,6 +94,19 @@ progreso.
   que tocas. Objetivos y números de traste nunca se deforman.
 - Menú principal: un salón recreativo a oscuras iluminado como un acuario. Cada juego es una máquina
   que se enciende al desbloquearlo y muestra la mejor marca; lo que lleva tiempo sin repasar parpadea.
+
+## Criterios didácticos
+
+Reglas que el código hace cumplir (cada una tiene su prueba en `tests/`):
+
+- **Maestría por ronda.** Un `itemId` se actualiza una sola vez por ronda (peso medio de sus intentos, a la mitad si alguno falló). La estabilidad solo crece del todo si ha pasado más de la mitad de la estabilidad desde la última vez: repetir 16 negras en una ronda no es repaso espaciado.
+- **Ventanas de acierto.** Nunca más anchas que 0,3 (acierto) y 0,6 (exterior) veces el hueco mínimo entre notas del ejercicio; suelo de 0,04 s y 0,08 s por lo que necesita la detección.
+- **Estrellas.** 0 si casi no se tocó (menos de un cuarto de objetivos bien); 2 piden limpieza ≥ 0,75 y precisión ≥ 0,7 (todo tarde o todo pronto se queda en 1); 3 piden limpieza ≥ 0,9; las notas de más restan con tope.
+- **Escalas.** La tirada empieza y acaba en la tónica: de la tónica más grave de la posición a la siguiente (una octava en niveles 1-3 y en terceras, dos como máximo) y de vuelta.
+- **Ritmo.** El primer compás empieza con un ataque en el pulso 0; el tempo cambia por tramos de tres niveles (60/66/72/78), nunca a la vez que una celda nueva.
+- **Acordes de guitarra.** Cada acorde nuevo entra solo (Em y Am, E y A, Re, Sol, Do); en los niveles 1-5 se repite 2-4 veces seguido, así que el cambio no es la dificultad hasta el 6, cuyo par sale de una lista progresiva.
+- **Curso.** Aprender cubre todos los niveles que usan Practicar y el Jefe de su módulo (1..máximo). El sondeo concede solo niveles de Aprender (N-1, o N si es una sonda difícil de 6+ objetivos) y abre su módulo; nunca estrellas de arcade, así que no completa la práctica ni abre el siguiente módulo.
+- **Un nivel, una dificultad.** El nivel 10 de escalas solo añade el reloj; el de ritmo no cambia de tempo con la celda.
 
 ## Límites de la detección
 

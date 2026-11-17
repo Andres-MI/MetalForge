@@ -67,7 +67,7 @@ export class TelarScene extends Phaser.Scene {
     // ---- static layout ----
     drawText(this, 8, 6, 'TELAR', { scale: 2, color: 'blue' });
     drawText(this, W - 8, 8, timed ? `NIVEL ${data.level}  ·  ${exercise.bpm} BPM` : `NIVEL ${data.level}`, { color: 'foam', align: 'right' });
-    drawText(this, W - 8, 18, levelLabel('strings', data.level), { color: 'dim', align: 'right' });
+    drawText(this, W - 8, 18, levelLabel('strings', data.level, exercise.instrument), { color: 'dim', align: 'right' });
     const progress = drawText(this, 8, 26, '', { color: 'dim' });
     const back = this.add.graphics().setDepth(1);
     panel(back, PANEL.x, PANEL.y, PANEL.w, PANEL.h, 'water', 'deep', 0.8);

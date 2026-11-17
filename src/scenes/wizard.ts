@@ -122,7 +122,7 @@ export class WizardScene extends Phaser.Scene {
     drawText(this, W - 8, 8, `NIVEL ${data.level}`, { color: 'foam', align: 'right', depth: 10 });
     const waveText = drawText(this, W - 8, 18, '', { color: 'dim', align: 'right', depth: 10 });
     const limitText = drawText(this, W - 8, 28, '', { color: 'dim', align: 'right', depth: 10 });
-    drawText(this, 8, 36, levelLabel('chords', data.level), { color: 'dim', depth: 10 });
+    drawText(this, 8, 36, levelLabel('chords', data.level, inst.id), { color: 'dim', depth: 10 });
     const hearts = Array.from({ length: MAX_HEARTS }, (_, i) => this.add.image(8 + i * 10, 24, 'heart').setOrigin(0, 0).setDepth(10));
     const msgBig = drawText(this, W / 2, 76, '', { scale: 2, color: 'amber', align: 'center', depth: 12 });
     const msgSub = drawText(this, W / 2, 94, '', { color: 'foam', align: 'center', depth: 12 });
@@ -185,7 +185,7 @@ export class WizardScene extends Phaser.Scene {
       box = null;
       const gr = groups[gi];
       placeText(nameBig, 86, PANEL_Y + 6, gr.name, { scale: 3, color: runeColor(gr.name) });
-      placeText(labelText, 86, PANEL_Y + 30, chordLabel(gr.name), { color: 'cyan' });
+      placeText(labelText, 86, PANEL_Y + 30, chordLabel(gr.name, inst.id), { color: 'cyan' });
       if (!isBass) {
         box = drawChordBox(this, gr.name, 24, PANEL_Y + 19, { sx: 8, sy: 7, labels: true, depth: 8 });
         placeText(tonesText, 86, PANEL_Y + 40, `Notas: ${chordToneNames(gr.name).join(' · ')}`, { color: 'dim' });

@@ -45,7 +45,7 @@ export class ResultsScene extends Phaser.Scene {
     const def = GAMES[data.params.gameId];
 
     drawText(this, W / 2, 8, 'RESULTADOS', { scale: 2, color: def.accent, align: 'center' });
-    drawText(this, W / 2, 26, `${def.title} · Nivel ${data.level} · ${levelLabel(data.skill, data.level)}`, { color: 'dim', align: 'center' });
+    drawText(this, W / 2, 26, `${def.title} · Nivel ${data.level} · ${levelLabel(data.skill, data.level, profileStore(this).profile.instrument ?? 'guitar')}`, { color: 'dim', align: 'center' });
 
     // Stars appear one after another.
     const sg = this.add.graphics();

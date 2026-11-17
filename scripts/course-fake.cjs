@@ -103,7 +103,10 @@ const PRACTICE_LEVEL = instrument === 'guitar' ? 3 : 4;
 /** A progress blob of a player who cleared Ritmo and Trastes, with aged mastery so that a review has work to do. */
 function seedBlob(now) {
   const lvl = (stars) => ({ stars, plays: 2, at: now });
-  const levels = { [`salto:${PRACTICE_LEVEL}`]: lvl(3), 'pulso:1': lvl(3), 'pulso:2': lvl(2), 'pulso:3': lvl(2), 'fireflies:1': lvl(3), 'fireflies:2': lvl(2), 'fireflies:3': lvl(2), 'ninja:3': lvl(2) };
+  // Aprender covers every level the practice step and the boss use (rhythm 1..5, or 1..6 on bass; frets 1..5).
+  const levels = { [`salto:${PRACTICE_LEVEL}`]: lvl(3), 'ninja:3': lvl(2) };
+  for (let l = 1; l <= (instrument === 'guitar' ? 5 : 6); l++) levels[`pulso:${l}`] = lvl(l === 1 ? 3 : 2);
+  for (let l = 1; l <= 5; l++) levels[`fireflies:${l}`] = lvl(l === 1 ? 3 : 2);
   const item = (strength, stability, daysAgo, hits = 3, misses = 1) => ({ strength, stability, lastSeen: now - daysAgo * DAY, seen: hits + misses, hits, misses });
   const items = {
     'rhythm:quarters': item(0.5, 0.6, 20),

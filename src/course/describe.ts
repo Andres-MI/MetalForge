@@ -36,7 +36,7 @@ export function describeTarget(ex: Exercise, index: number): TargetInfo {
     const g = [...groups].reverse().find((x) => index >= x.first);
     if (g && CHORDS[g.name]) {
       const role = bassRoles(g.count)[index - g.first];
-      return { big: `${noteNameWithOctave(k.midi)} (${BASS_ROLE_ES[role]})`, small: `${chordLabel(g.name)} · ${where}`, midis: [k.midi], chord: null };
+      return { big: `${noteNameWithOctave(k.midi)} (${BASS_ROLE_ES[role]})`, small: `${chordLabel(g.name, ex.instrument)} · ${where}`, midis: [k.midi], chord: null };
     }
   }
   return { big: noteNameWithOctave(k.midi), small: where, midis: [k.midi], chord: null };

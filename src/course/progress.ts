@@ -5,13 +5,14 @@
  *
  * Stars of a level, in order of trust:
  *  - the stored best (`levels`), exact;
- *  - the placement test: levels up to the one passed count as two stars, in the learn and the arcade game;
+ *  - the placement test: the learn levels it proves (`placementCredit`) count as two stars; never the arcade;
  *  - a learn level is also met when the arcade of the same skill was cleared with two stars at that level or above.
  */
 import { GAMES } from '../game/registry';
 import { readBest } from '../game/progressBlob';
 import { MAX_LEVEL } from '../exercises/common';
 import { readCourse, readLevels, type CourseBlob } from './blob';
+import { placementCredit } from './placement';
 import type { BossStep, Course, CourseModule, PlayStep, Step } from './types';
 
 export type UnlockReason = 'start' | 'requires' | 'placement' | 'manual';
@@ -77,7 +78,7 @@ export function starsAt(blob: unknown, gameId: string, level: number): number {
   if (!def) return 0;
   const stored = readLevels(blob)[`${gameId}:${level}`]?.stars ?? 0;
   const placed = readCourse(blob).placement?.skills[def.skill] ?? 0;
-  const virtual = level <= placed ? 2 : 0;
+  const virtual = def.mode === 'learn' && level <= placementCredit(def.skill, placed) ? 2 : 0;
   return Math.max(stored, virtual);
 }
 

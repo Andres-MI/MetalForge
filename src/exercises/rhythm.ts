@@ -5,7 +5,7 @@
  *  1 quarters   2 + rests   3 steady eighths   4 mixed quarters/eighths/rests   5 + syncopation
  *  6 + sixteenths   7 + mixed eighth/sixteenth cells   8 + syncopated sixteenths   9 + triplets
  *  10 dense mix of everything
- * Tempo rises gently: 60 bpm at level 1, +3 bpm per level.
+ * Tempo changes per TIER of three levels, never on top of a new cell: 60 bpm at levels 1-3, 66 at 4-6, 72 at 7-9, 78 at 10.
  */
 import type { Exercise, Target } from '../model/exercise';
 import { clampLevel, DEFAULT_LENGTH, exerciseId, makeRng, pick, shuffle, type GenerateOptions } from './common';
@@ -47,18 +47,22 @@ const SPECS: Spec[] = [
 ];
 
 export function rhythmBpm(level: number): number {
-  return 60 + 3 * (clampLevel(level) - 1);
+  return 60 + 6 * Math.floor((clampLevel(level) - 1) / 3);
 }
 
-function buildBar(spec: Spec, r: () => number): string[] {
+/** A cell that sounds exactly on its beat (the others, rests and off-beat cells, leave the beat empty). */
+const onBeat = (cell: string): boolean => CELLS[cell].offsets[0] === 0;
+
+/** The first bar of an exercise starts with an attack on beat 0: a downbeat to count from. */
+function buildBar(spec: Spec, r: () => number, first = false): string[] {
   const bar: (string | undefined)[] = [undefined, undefined, undefined, undefined];
   for (const group of spec.required) {
     const cell = pick(r, group);
     // Rests never take the first beat, which anchors the bar.
-    const free = shuffle(r, [0, 1, 2, 3]).filter((b) => bar[b] === undefined && !(cell === 'rest' && b === 0));
+    const free = shuffle(r, [0, 1, 2, 3]).filter((b) => bar[b] === undefined && !((cell === 'rest' || (first && !onBeat(cell))) && b === 0));
     if (free.length) bar[free[0]] = cell;
   }
-  const fillable = spec.allowed.filter((c) => c !== 'rest');
+  const fillable = spec.allowed.filter((c) => c !== 'rest' && (!first || onBeat(c)));
   for (let b = 0; b < 4; b++) if (bar[b] === undefined) bar[b] = b === 0 ? pick(r, fillable) : pick(r, spec.allowed);
   return bar as string[];
 }
@@ -71,7 +75,7 @@ export function generateRhythm(opts: GenerateOptions): Exercise {
   const targets: Target[] = [];
   let prevCell = '';
   for (let b = 0; b < bars; b++) {
-    const bar = buildBar(spec, r);
+    const bar = buildBar(spec, r, b === 0);
     bar.forEach((name, beatInBar) => {
       const cell = CELLS[name];
       cell.offsets.forEach((off, k) => {

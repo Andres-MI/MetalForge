@@ -35,13 +35,17 @@ export function changeFromOf(itemId: string): string {
   return i >= 0 ? rest.slice(0, i) : '';
 }
 
-/** Splits an exercise's targets into chords: a run of targets with the same itemId is one chord. */
+/**
+ * Splits an exercise's targets into chords: by the `chord` ordinal of each target when the generator gives it; otherwise
+ * every `chord` target is a chord of its own (a chord may be repeated) and a run of note targets with the same itemId is one.
+ */
 export function groupChords(exercise: Exercise): ChordGroup[] {
   const groups: ChordGroup[] = [];
   let prevName = '';
   exercise.targets.forEach((t, i) => {
     const last = groups[groups.length - 1];
-    if (last && exercise.targets[last.first].itemId === t.itemId) {
+    const same = t.chord !== undefined ? exercise.targets[last?.first ?? 0]?.chord === t.chord : t.kind.type !== 'chord' && exercise.targets[last?.first ?? 0]?.itemId === t.itemId;
+    if (last && same) {
       last.count++;
       return;
     }
@@ -58,11 +62,12 @@ export function groupIndexOf(groups: ChordGroup[], targetIndex: number): number 
   return 0;
 }
 
-/** Spanish name of a chord: "Mi menor", "Sol mayor", "Mi 5" (power chord). */
-export function chordLabel(name: string): string {
+/** Spanish name of a chord: "Mi menor", "Sol mayor", "Mi 5" (power chord); on a bass just its root: "Mi". */
+export function chordLabel(name: string, instrument?: InstrumentId): string {
   const def = CHORDS[name];
   if (!def) return name;
   const root = noteName(def.rootPc);
+  if (instrument && instrument !== 'guitar') return root;
   if (/5$/.test(name)) return `${root} 5`;
   if (/m$/.test(name)) return `${root} menor`;
   return `${root} mayor`;

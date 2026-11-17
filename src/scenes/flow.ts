@@ -100,7 +100,7 @@ export class FlowScene extends Phaser.Scene {
       x += 34;
     }
     const mode = def.mode === 'learn' ? 'Aprender' : 'Practicar';
-    const detail = flow.kind === 'review' ? (p.note ?? '') : levelLabel(def.skill, p.level);
+    const detail = flow.kind === 'review' ? (p.note ?? '') : levelLabel(def.skill, p.level, profileStore(this).profile.instrument ?? 'guitar');
     const note = detail ? `${mode} · ${detail}` : mode;
     this.say(W - 24, y + Math.round((h - 7) / 2), fit(note, W - 24 - x - 4), { color: state === 'todo' ? 'dim' : def.accent, align: 'right' });
   }
@@ -182,7 +182,7 @@ export class FlowScene extends Phaser.Scene {
         this.say(W / 2, 130, 'Más difícil que la anterior.', { color: 'dim', align: 'center' });
       } else {
         this.say(W / 2, 118, `Siguiente: ${nd.title} · nivel ${next.level}`, { color: nd.accent, align: 'center' });
-        this.say(W / 2, 130, fit(levelLabel(nd.skill, next.level), W - 24), { color: 'dim', align: 'center' });
+        this.say(W / 2, 130, fit(levelLabel(nd.skill, next.level, profileStore(this).profile.instrument ?? 'guitar'), W - 24), { color: 'dim', align: 'center' });
       }
     }
     addButtons(this, [{ label: 'Seguir', id: 'next', act: () => void this.launch(flow) }, { label: 'Salón', id: 'hub', act: () => this.leave() }], H - 34, { w: 84 });

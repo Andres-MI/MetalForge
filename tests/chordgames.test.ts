@@ -18,6 +18,8 @@ import type { ChordAnalysis } from '../src/scoring/chord';
 import type { ScoredTarget } from '../src/scoring/types';
 
 const IDS: InstrumentId[] = ['guitar', 'bass4', 'bass5'];
+/** Bass levels whose pattern is root-fifth-octave-fifth (see exercises/chords.ts). */
+const BASS4_LEVELS = [4, 8, 9, 10];
 const NAMES = Object.keys(CHORDS);
 const guitar = INSTRUMENTS.guitar;
 
@@ -34,7 +36,7 @@ describe('chord groups', () => {
       for (let level = 1; level <= 10; level++) {
         const ex = generate('chords', { instrument, level, seed: 3, length: 6 });
         const groups = groupChords(ex);
-        const expectedCount = instrument === 'guitar' ? 1 : level >= 8 ? 4 : 3;
+        const expectedCount = instrument === 'guitar' ? 1 : BASS4_LEVELS.includes(level) ? 4 : 3;
         expect(groups.length).toBe(ex.targets.length / expectedCount);
         groups.forEach((g, i) => {
           expect(g.count).toBe(expectedCount);
@@ -259,11 +261,11 @@ describe('one-minute changes', () => {
     expect(m.remaining(500)).toBe(0);
   });
 
-  it('builds the alternating exercise from the first change of levels 5-9, guitar and bass', () => {
+  it('builds the alternating exercise from the first change of every changes level, guitar and bass', () => {
     for (const instrument of IDS)
-      for (let level = 5; level <= 9; level++) {
+      for (const level of instrument === 'guitar' ? [6, 7, 8, 9] : [3, 5, 6, 7, 8, 9]) {
         const base = generate('chords', { instrument, level, seed: 9, length: 8 });
-        const made = minuteExercise(base, level)!;
+        const made = minuteExercise(base)!;
         expect(made).not.toBeNull();
         const [a, b] = made.pair;
         expect(a).not.toBe(b);
@@ -272,13 +274,14 @@ describe('one-minute changes', () => {
         expect(groups.length).toBeGreaterThanOrEqual(60);
         groups.forEach((g, i) => expect(g.name).toBe(i % 2 === 0 ? a : b));
         expect(made.exercise.targets.every((t) => t.beat === undefined)).toBe(true);
-        const per = instrument === 'guitar' ? 1 : level >= 8 ? 4 : 3;
+        const per = instrument === 'guitar' ? 1 : BASS4_LEVELS.includes(level) ? 4 : 3;
         expect(groups.every((g) => g.count === per)).toBe(true);
       }
   });
 
   it('is not offered at single-chord levels nor at the timed level', () => {
-    for (const level of [1, 2, 3, 4, 10]) expect(minuteExercise(generate('chords', { instrument: 'guitar', level, seed: 2, length: 8 }), level)).toBeNull();
+    for (const level of [1, 2, 3, 4, 5, 10]) expect(minuteExercise(generate('chords', { instrument: 'guitar', level, seed: 2, length: 8 }))).toBeNull();
+    for (const level of [1, 2, 4, 10]) expect(minuteExercise(generate('chords', { instrument: 'bass4', level, seed: 2, length: 8 }))).toBeNull();
   });
 
   it('keeps the best per pair in the blob without touching anything else (older blobs have no such key)', () => {
@@ -300,8 +303,8 @@ describe('one-minute changes', () => {
   });
 
   it('through the session: alternating perfect strums for a virtual minute count clean changes', () => {
-    const base = generate('chords', { instrument: 'guitar', level: 5, seed: 4, length: 8 });
-    const made = minuteExercise(base, 5)!;
+    const base = generate('chords', { instrument: 'guitar', level: 6, seed: 4, length: 8 });
+    const made = minuteExercise(base)!;
     const input = new FakeInput();
     const session = new GameSession({ exercise: made.exercise, input, metronome: { on: false } });
     const fake = makeFakeControl(session, input);

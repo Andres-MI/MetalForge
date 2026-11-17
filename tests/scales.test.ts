@@ -94,7 +94,10 @@ describe('scale info (pure)', () => {
       expect(imp.targets).toHaveLength(30);
       expect(imp.targets.every((t) => t.beat === undefined && t.kind.type === 'anyOf')).toBe(true);
       const ordered = generate('scales', { instrument: 'guitar', level, seed: 3, length: 40 });
-      expect(zoneMidis(imp)).toEqual(zoneMidis(ordered));
+      // the free zone is the whole position; the ordered run (tonic to tonic) is a subset of it
+      const zone = zoneMidis(imp);
+      expect(zone).toEqual(scalesZone('guitar', level, 3).map((n) => n.midi).sort((a, b) => a - b));
+      for (const m of zoneMidis(ordered)) expect(zone).toContain(m);
     }
   });
 });

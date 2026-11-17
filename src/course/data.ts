@@ -6,6 +6,9 @@
  * in the arcade at a given level). Besides that, a module also opens by placement test, by hand from the
  * settings, or because the profile already shows play in that skill (see progress.ts).
  *
+ * Coverage rule: a module's learn step covers every level its practice step and its boss use (levels 1..the highest),
+ * so the arcade and the boss never ask for something the sober game has not taught (tests/course.test.ts checks it).
+ *
  * Guitar order follows the table of the design document: Ritmo, Trastes, Cuerdas, Acordes, Escalas.
  * Bass: rhythm is the bassist's job, so its bar is higher (level 4) and it comes first; Escalas come BEFORE
  * Acordes because root, fifth and octave (what Forja and Hechicero ask on bass) are degrees 1-5-8 of a scale
@@ -43,8 +46,7 @@ interface ModuleSpec {
   blurb: string;
   learn: string;
   arcade: string;
-  /** Learn levels to clear, and the practice level that opens the next module. */
-  learnLevels: number[];
+  /** The practice level that opens the next module. The learn step covers levels 1..max(practice, boss), see `build`. */
   practiceLevel: number;
   bossTitle: string;
   /** [practice, learn, practice]: the boss alternates the arcade and the sober game, one level harder each time. */
@@ -53,7 +55,13 @@ interface ModuleSpec {
   requires: string[];
 }
 
+/** Highest level its practice step or boss asks for: the learn step covers every level up to it (nothing is met first in the arcade). */
+export function highestLevelUsed(s: Pick<ModuleSpec, 'practiceLevel' | 'bossLevels'>): number {
+  return Math.max(s.practiceLevel, ...s.bossLevels);
+}
+
 function build(s: ModuleSpec): CourseModule {
+  const learnLevels = Array.from({ length: highestLevelUsed(s) }, (_, i) => i + 1);
   return {
     id: s.id,
     title: s.title,
@@ -63,7 +71,7 @@ function build(s: ModuleSpec): CourseModule {
     requires: s.requires,
     blurb: s.blurb,
     steps: [
-      learn(s.learn, s.learnLevels),
+      learn(s.learn, learnLevels),
       practice(s.arcade, s.practiceLevel),
       review(2),
       boss(s.bossTitle, [
@@ -77,24 +85,24 @@ function build(s: ModuleSpec): CourseModule {
 
 const RHYTHM = (practiceLevel: number): ModuleSpec => ({
   id: 'rhythm', title: 'Ritmo', skill: 'rhythm', cabinet: 'pulse', accent: 'cyan', blurb: 'Tocar en el golpe, de negras a síncopas.',
-  learn: 'pulso', arcade: 'salto', learnLevels: [1, 2, 3], practiceLevel, bossTitle: 'EL METRÓNOMO LOCO', bossLevels: [practiceLevel + 1, practiceLevel + 2, practiceLevel + 2], requires: [],
+  learn: 'pulso', arcade: 'salto', practiceLevel, bossTitle: 'EL METRÓNOMO LOCO', bossLevels: [practiceLevel + 1, practiceLevel + 2, practiceLevel + 2], requires: [],
 });
 const FRETS = (requires: string[]): ModuleSpec => ({
   id: 'frets', title: 'Trastes', skill: 'frets', cabinet: 'fireflies', accent: 'lime', blurb: 'Encontrar cada traste de una cuerda.',
-  learn: 'fireflies', arcade: 'ninja', learnLevels: [1, 2, 3], practiceLevel: 3, bossTitle: 'EL REY DEL PUENTE', bossLevels: [4, 5, 5], requires,
+  learn: 'fireflies', arcade: 'ninja', practiceLevel: 3, bossTitle: 'EL REY DEL PUENTE', bossLevels: [4, 5, 5], requires,
 });
 const STRINGS = (requires: string[]): ModuleSpec => ({
   id: 'strings', title: 'Cuerdas', skill: 'strings', cabinet: 'loom', accent: 'blue', blurb: 'Cambiar y saltar de cuerda sin mirar.',
-  learn: 'telar', arcade: 'portero', learnLevels: [1, 2, 3], practiceLevel: 3, bossTitle: 'LA ARAÑA DEL TELAR', bossLevels: [4, 5, 5], requires,
+  learn: 'telar', arcade: 'portero', practiceLevel: 3, bossTitle: 'LA ARAÑA DEL TELAR', bossLevels: [4, 5, 5], requires,
 });
 const CHORDS = (requires: string[], bass: boolean): ModuleSpec => ({
   id: 'chords', title: 'Acordes', skill: 'chords', cabinet: 'forge', accent: 'amber',
   blurb: bass ? 'Raíz, quinta y octava de cada acorde.' : 'Formar acordes abiertos y limpios.',
-  learn: 'forge', arcade: 'wizard', learnLevels: [1, 2, 3], practiceLevel: 3, bossTitle: 'EL HERRERO OSCURO', bossLevels: [4, 4, 5], requires,
+  learn: 'forge', arcade: 'wizard', practiceLevel: 3, bossTitle: 'EL HERRERO OSCURO', bossLevels: [4, 4, 5], requires,
 });
 const SCALES = (requires: string[]): ModuleSpec => ({
   id: 'scales', title: 'Escalas', skill: 'scales', cabinet: 'climb', accent: 'violet', blurb: 'Pentatónica y escala mayor.',
-  learn: 'climb', arcade: 'tower', learnLevels: [1, 2, 3], practiceLevel: 3, bossTitle: 'EL GUARDIÁN DE LA TORRE', bossLevels: [4, 4, 5], requires,
+  learn: 'climb', arcade: 'tower', practiceLevel: 3, bossTitle: 'EL GUARDIÁN DE LA TORRE', bossLevels: [4, 4, 5], requires,
 });
 
 export const GUITAR_COURSE: Course = {
@@ -143,13 +151,14 @@ export function moduleOfGame(course: Course, gameId: string): CourseModule | und
 /**
  * Placement test (about five minutes): per skill an easy probe and a harder one, played in the order of the
  * design document (frets on one string, string changes, chords or root-fifth-octave, a short scale run, a
- * short rhythm). The harder probe is only offered when the easy one went well. Tuning and calibration come
+ * short rhythm). Chords probes have at least 4 targets (two chords, repeated or changed) and the scales probes are the
+ * whole run up and back down. The harder probe is only offered when the easy one went well. Tuning and calibration come
  * before them (the scene asks for them), not as probes.
  */
 export const PLACEMENT_PROBES: PlacementProbe[][] = [
   [{ skill: 'frets', level: 2, length: 5 }, { skill: 'frets', level: 5, length: 5 }],
   [{ skill: 'strings', level: 2, length: 5 }, { skill: 'strings', level: 5, length: 5 }],
-  [{ skill: 'chords', level: 2, length: 2 }, { skill: 'chords', level: 4, length: 2 }],
-  [{ skill: 'scales', level: 1, length: 6 }, { skill: 'scales', level: 3, length: 6 }],
+  [{ skill: 'chords', level: 2, length: 4 }, { skill: 'chords', level: 6, length: 4 }],
+  [{ skill: 'scales', level: 2, length: 11 }, { skill: 'scales', level: 3, length: 15 }],
   [{ skill: 'rhythm', level: 2, length: 8 }, { skill: 'rhythm', level: 5, length: 8 }],
 ];
