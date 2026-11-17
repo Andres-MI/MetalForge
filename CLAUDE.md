@@ -31,6 +31,11 @@ de construcción y sus prompts en `docs/FASES.md`.
   ronda libre, notas erróneas, nivel 10 a tempo) y Torre (perfecta con las dos salas de guardián, notas erróneas, en silencio →
   reinicio más lento → resultados, nivel 10) con la entrada falsa; sale con código 1 si algo falla; capturas
   `test-results/scales-*`. `npx tsx scripts/make-scales-wav.ts <wav>` + `node scripts/scales-audio.cjs <wav>` — Escalada con audio real
+- `node scripts/chords-fake.cjs [url] [guitar|bass4|bass5] [forge|wizard|all]` — juega Forja (cuerda muda y nota extraña con su mensaje, acorde bueno,
+  saltar, nivel 5 «un minuto de cambios» con tiempo virtual y mejor por pareja, nivel 10 a tempo) y Hechicero (perfecta con jefe, acordes
+  equivocados/flojos, en silencio → reinicio más lento → resultados, nivel 10 a tempo) con la entrada falsa; en bajo toca las notas en orden;
+  sale con código 1 si algo falla; capturas `test-results/chords-*`. `npx tsx scripts/make-chords-wav.ts <wav> correct|wrong [nivel]` +
+  `node scripts/chords-audio.cjs <wav> [url] [nivel]` — Forja con rasgueos sintetizados (o con el vecino equivocado) como micrófono
 - `node scripts/keys-rapid.cjs [url]` — ráfagas de teclas sin pausa en el salón y el selector de nivel: cada pulsación
   debe contar exactamente una vez
 - `npx tsx scripts/make-calibration-wav.ts <wav> [lagMs]` y `node scripts/calibrate.cjs <wav> [url] [etiqueta]` — WAV de
@@ -60,12 +65,12 @@ de construcción y sus prompts en `docs/FASES.md`.
   `keyboardFix.ts` (Phaser 3.90 repartía varias veces las teclas pulsadas en un mismo fotograma; se instala en `createGame`) y
   `hooks.ts` (`window.__metalforge`: `heard`, `scene`, `instrument`, `selected`, `backgroundEffects`, `useFakeInput`, `fake`,
   `judged`, `results` (con `arcade` en los arcades), `salto`, `fireflies`, `ninja`, `telar`, `portero`, `climb`, `tower`,
-  `calibration`, `audio`, para automatizar).
+  `calibration`, `audio`, `forge`, `wizard`, para automatizar).
 - `src/scenes/` — escenas Phaser: `boot`, `picker` (primer arranque), `hub` (salón recreativo; las máquinas salen
   de la lista de `hubData.ts`), `soon` («Próximamente»), `tuner`, `modechoice` (Aprender/Practicar), `levelselect`,
   `results` (común) y `calibration` (tecla C en el salón). Juegos, por pareja aprender/arcade: `pulso`/`salto` (ritmo),
   `fireflies`/`ninja` (trastes; `fretsDraw.ts` dibuja el mástil de ambos), `telar`/`portero` (cuerdas; `stringsView.ts`
-  son ayudas de dibujo de ambos) y `climb`/`tower` (escalas; `scalesDraw.ts`). Una escena nueva se registra en `main.ts`.
+  son ayudas de dibujo de ambos) y `climb`/`tower` (escalas; `scalesDraw.ts`) y `forge`/`wizard` (acordes; `chordsDraw.ts` dibuja la caja de acorde, la runa y el mástil de bajo). Una escena nueva se registra en `main.ts`.
 - `src/profile/` — perfil en IndexedDB tras la interfaz `KeyValueStorage` (`store.ts`; `idb.ts` real, `memory.ts`
   falsa para pruebas): instrumento, ajustes y un blob de progreso opaco por instrumento.
 - `src/ui/` — `palette.ts` es la única fuente de colores (claves + `paletteInt`); `style.css` centra el lienzo.
@@ -99,6 +104,11 @@ de construcción y sus prompts en `docs/FASES.md`.
   `improvisation` (la variante libre sin reloj); `scales/backing.ts` sintetiza el acompañamiento del jefe y «oír la escala».
   `tower/state.ts` (`TowerRun`: agua, corazones, racha, pisos), `pace.ts` (velocidad del agua, bajo −20 %) y `boss.ts` (`BossFight`).
   `scenes/scalesDraw.ts` dibuja el mástil de la posición; sprites en `src/art/sprites-scales.ts`.
+  `chords/` (Forja y Hechicero): `names.ts` (`groupChords`: un acorde = un objetivo en guitarra o 3-4 notas en bajo), `diagram.ts` (caja de acorde
+  y nota que falta → cuerda), `feedback.ts` (mensajes de `ScoredTarget.chord`; `CLEAN_THRESHOLD`), `rune.ts` (runas 9x9 por acorde), `hear.ts`;
+  `forge/minute.ts` (`MinuteRound`: un minuto de cambios con el reloj de la sesión; mejor por pareja en la clave `changeBest` del blob);
+  `wizard/state.ts` (`WizardRun`: críticos, bonus de cambio, fallos, llegada de enemigos, jefe, reinicio más lento; `TUNING`) y `pace.ts`.
+  Sprites en `src/art/sprites-chords.ts`. `FakeControl.strum()` inyecta un rasgueo (cuerdas mudas, notas extrañas, fuerza).
 - `tests/helpers/robot.ts` — jugador robot: sintetiza el ejercicio con errores inyectables (`wrongRate`, `wrongChordRate` = acorde vecino
   equivocado), lo pasa por el detector real y el `Judge` (acordes por la vía espectral).
 

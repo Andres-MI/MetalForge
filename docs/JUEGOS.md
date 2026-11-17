@@ -82,6 +82,17 @@ Con reloj (niveles 7+) coloca los tiros con `session.beat()`. Reglas en `src/gam
 - Escalada usa `beginGame(..., { manual: true })` para ofrecer la ronda libre tras la tirada ordenada y abre los resultados con
   el resumen de la tirada ordenada. Torre encadena pisos y salas de jefe con `release`/`spawn` desde `update` (cola `pending`).
 
+## Acordes (ejemplo: Forja y Hechicero)
+
+- Un acorde es UN objetivo `chord` en guitarra y 3-4 objetivos `note` seguidos en bajo; `groupChords(exercise)` (`src/game/chords/names.ts`) los
+  junta para que la escena trate siempre «acordes». El veredicto espectral llega ~0,25 s tras el rasgueo en `ScoredTarget.chord`
+  (`missing`, `contradicted`, `present`, `cleanliness`); `chordFeedback` lo convierte en mensajes. Un arcade debe avisar a su estado de que hay
+  un rasgueo en juicio (`WizardRun.strumHeard`) para no dar al enemigo por llegado mientras tanto.
+- «Un minuto de cambios» (Forja, niveles 5-9) es una segunda sesión sin dominio (`spawn(ejercicio, { mastery: undefined })`) que alterna los dos acordes del cambio;
+  `MinuteRound` cuenta con `session.input.now()`.
+- Probar: `fake.strum({ mutedStrings, foreign, level })` (guitarra) y `fake.pluckNote` (bajo); `fake.candidates()` da las notas que el detector vigila.
+  Ver `scripts/chords-fake.cjs`.
+
 ## Notas esperadas
 
 `GameSession.start()` llama a `input.setExpected(midis)` con las notas del ejercicio (`note` → su midi, `anyOf` y
