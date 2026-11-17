@@ -3,6 +3,7 @@ import { drawText, placeText } from '../art/text';
 import { startInput, type InputHandle } from '../audio/input';
 import { addBackground, enterScene, H, profileStore, setEnergy, W } from '../engine/kit';
 import { hooks } from '../engine/hooks';
+import { recordTuner } from '../course/service';
 import { INSTRUMENTS, centsOff, freqToMidi, noteName, noteNameWithOctave, type Instrument } from '../model/instrument';
 import { paletteInt, STRING_COLOR_KEYS, type PaletteKey } from '../ui/palette';
 import { SHORT_LABEL } from './hubData';
@@ -46,6 +47,7 @@ export class TunerScene extends Phaser.Scene {
     this.activeString = -1;
     this.strings = [];
     this.inst = INSTRUMENTS[profileStore(this).profile.instrument ?? 'guitar'];
+    void recordTuner(profileStore(this)); // Preparación: the tuner counts as used once opened
     hooks.heard.length = 0;
 
     drawText(this, W / 2, 8, 'AFINADOR', { scale: 2, color: 'cyan', align: 'center' });

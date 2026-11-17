@@ -13,7 +13,7 @@ código. Cada fase se cierra con `npm test`, los agentes indicados, `/code-revie
 | 5 | Cuerdas: Telar y Portero | playtester, pedagogo, pixel-artist | Hecha |
 | 6 | Acordes: Forja y Hechicero | dsp-tester, playtester, pixel-artist | Hecha |
 | 7 | Escalas: Escalada y Torre | playtester, pedagogo, pixel-artist | Hecha |
-| 8 | Curso: módulos, sondeo, repaso diario, jefes, Turbo | pedagogo, playtester | Siguiente |
+| 8 | Curso: módulos, sondeo, repaso diario, jefes, Turbo | pedagogo, playtester | Hecha |
 | 9 | Segunda tanda de juegos | todos | |
 | 10 | Canciones desde Guitar Pro | dsp-tester, playtester | |
 

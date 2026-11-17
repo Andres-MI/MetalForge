@@ -23,7 +23,7 @@ export class CalibrationScene extends Phaser.Scene {
     super('calibration');
   }
 
-  create(data: { next?: GameParams }): void {
+  create(data: { next?: GameParams; then?: { scene: string; data?: object } }): void {
     enterScene(this, 'calibration');
     addBackground(this);
     this.gone = false;
@@ -102,6 +102,7 @@ export class CalibrationScene extends Phaser.Scene {
     const leave = (skipped: boolean) => {
       if (skipped) this.registry.set(CALIBRATION_SKIPPED, true);
       if (data.next) void launchGame(this, data.next);
+      else if (data.then) this.scene.start(data.then.scene, data.then.data);
       else this.scene.start('hub');
     };
 

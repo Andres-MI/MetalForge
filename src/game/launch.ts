@@ -12,6 +12,7 @@ import { makeFakeControl } from './fakePlayer';
 import { profileMasteryStore } from './progressBlob';
 import { GAMES } from './registry';
 import { GameSession } from './session';
+import type { Exercise } from '../model/exercise';
 import type { GameParams, GameSceneData } from './types';
 
 export const CALIBRATION_SKIPPED = 'calibrationSkipped';
@@ -37,6 +38,32 @@ export async function launchGame(from: Phaser.Scene, params: GameParams): Promis
     return null;
   }
 
+  const opened = await openSession(from, exercise, true);
+  if (typeof opened === 'string' || opened === null) return opened;
+  const { session, fake } = opened;
+  hooks.fake = fake ? makeFakeControl(session, fake) : null;
+  hooks.judged = [];
+  hooks.results = null;
+  const data: GameSceneData = { params: { ...params, seed }, mode: def.mode, skill: def.skill, level: params.level, exercise, session };
+  from.scene.start(def.scene, data);
+  return null;
+}
+
+export interface OpenedSession {
+  session: GameSession;
+  /** The virtual input (when `window.__metalforge.useFakeInput` is set), else null. */
+  fake: FakeInput | null;
+}
+
+/**
+ * Opens the input (microphone, or the fake one for automation) and builds a GameSession for `exercise` with the
+ * profile's calibration, metronome and mastery store. Resolves to an error message (Spanish) when the input could
+ * not be opened, null when `from` is no longer the active scene (the input is closed again). `withMastery` = false
+ * for rounds that must not count as study (see `GameSession.spawn`).
+ */
+export async function openSession(from: Phaser.Scene, exercise: Exercise, withMastery: boolean): Promise<OpenedSession | string | null> {
+  const store = profileStore(from);
+  const instrument = store.profile.instrument ?? 'guitar';
   let input: GameInput;
   let fake: FakeInput | null = null;
   try {
@@ -59,12 +86,7 @@ export async function launchGame(from: Phaser.Scene, params: GameParams): Promis
     input,
     latencyOffset: settings.latencyOffset ?? 0,
     metronome: { on: settings.metronomeOn ?? true, volume: settings.metronomeVolume ?? 0.6 },
-    mastery: profileMasteryStore(store, instrument),
+    mastery: withMastery ? profileMasteryStore(store, instrument) : undefined,
   });
-  hooks.fake = fake ? makeFakeControl(session, fake) : null;
-  hooks.judged = [];
-  hooks.results = null;
-  const data: GameSceneData = { params: { ...params, seed }, mode: def.mode, skill: def.skill, level: params.level, exercise, session };
-  from.scene.start(def.scene, data);
-  return null;
+  return { session, fake };
 }

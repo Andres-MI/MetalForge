@@ -27,7 +27,7 @@ const { resolve } = require('node:path');
     }
   };
   const scene = (n) => page.waitForFunction((s) => window.__metalforge.scene === s, n, { timeout: 8000 }).then(() => page.waitForTimeout(250));
-  await page.goto(url);
+  await page.goto(url + (url.includes('?') ? '&' : '?') + 'curso=abierto');
   await page.waitForFunction(() => ['picker', 'hub'].includes(window.__metalforge?.scene));
   if ((await page.evaluate(() => window.__metalforge.scene)) === 'picker') {
     await press('ArrowRight', instrument);

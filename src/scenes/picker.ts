@@ -2,6 +2,8 @@ import Phaser from 'phaser';
 import { drawText } from '../art/text';
 import { addBackground, enterScene, H, profileStore, W } from '../engine/kit';
 import { hooks } from '../engine/hooks';
+import { readCourse } from '../course/blob';
+import { readMastery } from '../game/progressBlob';
 import { INSTRUMENTS, type InstrumentId } from '../model/instrument';
 import { paletteInt, STRING_COLOR_KEYS } from '../ui/palette';
 import { SHORT_LABEL } from './hubData';
@@ -93,8 +95,15 @@ export class PickerScene extends Phaser.Scene {
 
   private confirm(): void {
     const id = ORDER[this.index];
-    void profileStore(this)
+    const store = profileStore(this);
+    void store
       .setInstrument(id)
-      .then(() => this.scene.start('hub'));
+      .then(async () => {
+        // First time with this instrument: offer the placement test (once; "Empezar desde cero" is the default).
+        const blob = await store.getProgress(id);
+        const offer = !hooks.courseOpen && !readCourse(blob).placement && Object.keys(readMastery(blob).items).length === 0;
+        if (offer) this.scene.start('placement', { stage: 'intro' });
+        else this.scene.start('hub');
+      });
   }
 }

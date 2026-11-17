@@ -262,6 +262,58 @@ export interface WizardHook {
   over: boolean;
 }
 
+/** Course screen and hub, for automation. */
+export interface CourseHook {
+  /** Per module: id, open?, boss passed?, why it is open, and each step's id with done/open. */
+  modules: { id: string; unlocked: boolean; complete: boolean; reason: string | null; steps: { id: string; done: boolean; open: boolean }[] }[];
+  unlocked: string[];
+  /** "rhythm:learn" or null. */
+  next: string | null;
+  /** Cabinets that are lit and those blinking because their skill is due for review (hub only). */
+  lit: string[];
+  due: string[];
+}
+
+/** The flow scene (boss, daily/module review, Turbo): where it is and what it says. */
+export interface FlowHook {
+  kind: string;
+  id: string;
+  stage: 'intro' | 'between' | 'final';
+  /** Phase about to be played (or just played) and the number of phases (Turbo: so far). */
+  index: number;
+  phases: number;
+  outcomes: { gameId: string; level: number; stars: number; score: number | null }[];
+  over: boolean;
+  passed: boolean | null;
+  /** Texts on screen, top to bottom. */
+  lines: string[];
+  /** Final stage: modules it unlocked or completed (ids), Turbo rank (-1 none) and record. */
+  unlocked: string[];
+  completed: string[];
+  rank: number;
+  record: { score: number; rounds: number } | null;
+}
+
+/** The placement test scene. */
+export interface PlacementHook {
+  stage: 'intro' | 'round' | 'summary';
+  /** Probe in play: skill, level, whether it is timed and what to play now. */
+  probe: { skill: string; level: number; timed: boolean } | null;
+  /** Probes finished: skill, level, stars. */
+  done: { skill: string; level: number; stars: number }[];
+  /** Untimed rounds: what the current target asks for (MIDI notes for a note or chord; the chord name when it is one). */
+  target: { midis: number[]; chord: string | null } | null;
+  unlocked: string[];
+  lines: string[];
+}
+
+/** Profile access for automation: read, replace or clear the progress blob of the current instrument. */
+export interface ProgressHook {
+  get(): Promise<unknown>;
+  set(blob: unknown): Promise<void>;
+  clear(): Promise<void>;
+}
+
 export interface MetalforgeHooks {
   /** MIDI notes the detector reported as attacks, most recent last (the tuner scene fills it). */
   heard: number[];
@@ -278,12 +330,14 @@ export interface MetalforgeHooks {
    * microphone: no audio, no calibration prompt. The game then waits for `fake` to advance time.
    */
   useFakeInput: boolean;
+  /** Development/test flag (URL `?curso=abierto`): every module is open and the placement test is not offered. */
+  courseOpen: boolean;
   /** Controls of the fake input of the running game session; null when there is none. */
   fake: FakeControl | null;
   /** Final results of the game on screen (timed games), in order. */
   judged: JudgedHook[];
   /** Summary of the last finished round, or null. */
-  results: { stars: number; accuracy: number; tendency: string | null; meanMs: number | null; strays: number; hits: number; early: number; late: number; miss: number; arcade?: { score: number; bestCombo: number; previousBest: number; newBest: boolean } } | null;
+  results: { stars: number; accuracy: number; tendency: string | null; meanMs: number | null; strays: number; hits: number; early: number; late: number; miss: number; arcade?: { score: number; bestCombo: number; previousBest: number; newBest: boolean }; unlocked?: string[]; completed?: string[]; next?: string | null } | null;
   /** Salto (arcade) live state, or null outside it. */
   salto: SaltoHook | null;
   /** Last calibration measured, or null. */
@@ -302,6 +356,11 @@ export interface MetalforgeHooks {
   /** Forja (learn) and Hechicero (arcade) live state, or null outside them. */
   forge: ForgeHook | null;
   wizard: WizardHook | null;
+  /** Course screen / hub, flow, placement and profile access (see the interfaces above). */
+  course: CourseHook | null;
+  flow: FlowHook | null;
+  placement: PlacementHook | null;
+  progress: ProgressHook | null;
 }
 
 declare global {
@@ -317,6 +376,7 @@ export const hooks: MetalforgeHooks = {
   selected: null,
   backgroundEffects: true,
   useFakeInput: false,
+  courseOpen: false,
   fake: null,
   judged: [],
   results: null,
@@ -331,6 +391,10 @@ export const hooks: MetalforgeHooks = {
   tower: null,
   forge: null,
   wizard: null,
+  course: null,
+  flow: null,
+  placement: null,
+  progress: null,
 };
 
 export function installHooks(): void {
