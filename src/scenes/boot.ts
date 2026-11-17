@@ -13,10 +13,16 @@ export class BootScene extends Phaser.Scene {
   create(): void {
     hooks.scene = 'boot';
     registerArt(this);
+    hooks.courseOpen = new URLSearchParams(window.location.search).get('curso') === 'abierto';
     void openStorage().then(async (storage) => {
       const store = new ProfileStore(storage);
       await store.load();
       this.registry.set('store', store);
+      hooks.progress = {
+        get: async () => store.getProgress(store.profile.instrument ?? 'guitar'),
+        set: async (blob) => store.saveProgress(store.profile.instrument ?? 'guitar', blob),
+        clear: async () => store.clearProgress(store.profile.instrument ?? 'guitar'),
+      };
       this.scene.start(store.profile.instrument ? 'hub' : 'picker');
     });
   }
