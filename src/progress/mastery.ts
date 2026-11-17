@@ -58,34 +58,66 @@ function weightOf(r: ResultLike): number {
   }
 }
 
-function applyOne(prev: ItemState | undefined, r: ResultLike, now: number): ItemState {
+/** Weight multiplier when some attempts of the item failed in the same round. */
+const FAILED_ROUND_PENALTY = 0.5;
+/** Stability only grows when this fraction of the stability has elapsed since the item was last seen. */
+/** Fraction of the missing strength one perfect round recovers (it was 0.35 per note when every note counted). */
+const ROUND_GAIN = 0.5;
+const SPACING_FRACTION = 0.5;
+/** Growth factor (instead of 0.8) for a round that comes too soon after the previous one: practice, but barely memory. */
+const UNSPACED_GROWTH = 0.1;
+
+/**
+ * One update for an item with ALL its results of a round: repetitions inside one round are practice, not spaced
+ * review, so they count once, with the mean weight (halved if any attempt failed). A round with only failures
+ * cuts strength and stability. Stability grows fully only after enough time (> 0.5 x stability; the very first round
+ * always counts) and just a little otherwise, so cramming cannot reach a 90-day half-life.
+ */
+function applyItem(prev: ItemState | undefined, rs: ResultLike[], now: number): ItemState {
   const base: ItemState = prev ?? { strength: 0, stability: START_STABILITY, lastSeen: now, seen: 0, hits: 0, misses: 0 };
   const cur = currentStrength(base, now);
-  const w = weightOf(r);
-  if (w > 0) {
+  const weights = rs.map(weightOf);
+  const fails = weights.filter((w) => w === 0).length;
+  const mean = weights.reduce((s, w) => s + w, 0) / rs.length;
+  const seen = base.seen + rs.length;
+  const hits = base.hits + rs.length - fails;
+  const misses = base.misses + fails;
+  if (mean > 0) {
+    const w = fails > 0 ? mean * FAILED_ROUND_PENALTY : mean;
+    const elapsedDays = Math.max(0, now - base.lastSeen) / DAY_MS;
+    const spaced = base.seen === 0 || elapsedDays > SPACING_FRACTION * base.stability;
     return {
-      strength: cur + (1 - cur) * 0.35 * w,
-      stability: Math.min(MAX_STABILITY, base.stability * (1 + 0.8 * w)),
+      strength: cur + (1 - cur) * ROUND_GAIN * w,
+      stability: Math.min(MAX_STABILITY, base.stability * (1 + (spaced ? 0.8 : UNSPACED_GROWTH) * w)),
       lastSeen: now,
-      seen: base.seen + 1,
-      hits: base.hits + 1,
-      misses: base.misses,
+      seen,
+      hits,
+      misses,
     };
   }
   return {
     strength: cur * 0.55,
     stability: Math.max(MIN_STABILITY, base.stability * 0.6),
     lastSeen: now,
-    seen: base.seen + 1,
-    hits: base.hits,
-    misses: base.misses + 1,
+    seen,
+    hits,
+    misses,
   };
 }
 
-/** Returns a new Mastery with the round's results applied in order. */
+/**
+ * Returns a new Mastery with the round's results applied: ONE update per itemId (see `applyItem`), in order of
+ * first appearance.
+ */
 export function updateMastery(m: Mastery, results: ResultLike[], now: number): Mastery {
   const items = { ...m.items };
-  for (const r of results) items[r.itemId] = applyOne(items[r.itemId], r, now);
+  const groups = new Map<string, ResultLike[]>();
+  for (const r of results) {
+    const g = groups.get(r.itemId);
+    if (g) g.push(r);
+    else groups.set(r.itemId, [r]);
+  }
+  for (const [id, rs] of groups) items[id] = applyItem(items[id], rs, now);
   return { items };
 }
 

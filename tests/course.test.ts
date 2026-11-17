@@ -325,7 +325,8 @@ describe('repaso', () => {
   function masteryWith(entries: Record<string, { hits: number; daysAgo: number; misses?: number }>) {
     let m = emptyMastery();
     for (const [id, e] of Object.entries(entries)) {
-      for (let i = 0; i < e.hits; i++) m = updateMastery(m, [res(id)], NOW - e.daysAgo * day);
+      // each hit is a separate, spaced round (a day apart) that ends `daysAgo` days ago: repeating inside one round no longer builds stability
+      for (let i = 0; i < e.hits; i++) m = updateMastery(m, [res(id)], NOW - (e.daysAgo + e.hits - 1 - i) * day);
       for (let i = 0; i < (e.misses ?? 0); i++) m = updateMastery(m, [res(id, 'miss')], NOW - e.daysAgo * day);
     }
     return m;
@@ -356,6 +357,14 @@ describe('repaso', () => {
     const r = planReview({ now: NOW, instrument: 'guitar', mastery: fairly, skills: ['frets'], levelCap: { frets: 3 } });
     expect(r.rounds[0].strength).toBeGreaterThan(0.5);
     expect(r.rounds[0]).toMatchObject({ mode: 'practice', gameId: 'ninja' });
+  });
+
+  it('una ronda de ritmo a medias y un acorde flojo entran en el repaso del día siguiente', () => {
+    const rs = Array.from({ length: 16 }, (_, i) => res('rhythm:eighths', i % 2 ? 'late' : 'hit'));
+    const m = updateMastery(updateMastery(emptyMastery(), rs, NOW - day), [res('chords:Em'), res('chords:Em', 'miss'), res('chords:Em', 'miss')], NOW - day);
+    const plan = planReview({ now: NOW, instrument: 'guitar', mastery: m, skills: ['rhythm', 'chords'], minRounds: 1 });
+    expect(plan.due).toBe(2);
+    expect(plan.rounds.flatMap((r) => r.items).sort()).toEqual(['chords:Em', 'rhythm:eighths']);
   });
 
   it('el ejercicio elegido contiene los elementos buscados (nivel y semilla)', () => {
