@@ -566,12 +566,12 @@ async function wizardTimed(browser, level) {
   const browser = await chromium.launch();
   if (only === 'all' || only === 'forge') {
     await forgeLevel1(browser);
-    await forgeMinute(browser, 5);
+    await forgeMinute(browser, 6); // first level where every chord is a change (levels 1-5 repeat each chord)
     await forgeTimed(browser, 10);
   }
   if (only === 'all' || only === 'wizard') {
-    await wizardPerfect(browser, 1);
-    await wizardWrong(browser, 1);
+    await wizardPerfect(browser, 6); // a changes level: the chain of changes needs changes
+    await wizardWrong(browser, 6); // needs a changes level for the chain check
     await wizardSilent(browser, 1);
     await wizardTimed(browser, 10);
   }
