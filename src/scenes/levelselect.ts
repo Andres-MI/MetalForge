@@ -8,6 +8,8 @@ import { launchGame } from '../game/launch';
 import { GAMES } from '../game/registry';
 import { panel } from '../game/ui';
 import { paletteInt } from '../ui/palette';
+import { load } from '../course/service';
+import { readLevels } from '../course/blob';
 
 const BOX = 26;
 const GAP = 4;
@@ -74,6 +76,16 @@ export class LevelSelectScene extends Phaser.Scene {
     });
     kb.on('keydown-ESC', () => this.scene.start('modechoice', { id: def.cabinet }));
     this.pick(this.level);
+    // Best stars of each level under its number.
+    void load(store).then((l) => {
+      if (!this.scene.isActive()) return;
+      const g = this.add.graphics();
+      for (let k = 1; k <= MAX_LEVEL; k++) {
+        const stars = readLevels(l.blob)[`${this.gameId}:${k}`]?.stars ?? 0;
+        if (stars === 0) continue;
+        for (let s = 0; s < 3; s++) g.fillStyle(paletteInt(s < stars ? 'amber' : 'dim'), s < stars ? 1 : 0.5).fillRect(x0 + (k - 1) * (BOX + GAP) + 6 + s * 5, BOX_Y + 21, 4, 3);
+      }
+    });
   }
 
   private pick(l: number): void {

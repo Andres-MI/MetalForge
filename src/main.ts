@@ -20,6 +20,11 @@ import { ClimbScene } from './scenes/climb';
 import { TowerScene } from './scenes/tower';
 import { ForgeScene } from './scenes/forge';
 import { WizardScene } from './scenes/wizard';
+import { CourseScene } from './scenes/course';
+import { FlowScene } from './scenes/flow';
+import { PlacementScene } from './scenes/placement';
+import { SettingsScene } from './scenes/settings';
+import { TurboScene } from './scenes/turbo';
 
 installHooks();
-createGame(document.getElementById('app')!, [BootScene, PickerScene, HubScene, SoonScene, TunerScene, ModeChoiceScene, LevelSelectScene, PulsoScene, SaltoScene, FirefliesScene, NinjaScene, ResultsScene, CalibrationScene, TelarScene, PorteroScene, ClimbScene, TowerScene, ForgeScene, WizardScene]);
+createGame(document.getElementById('app')!, [BootScene, PickerScene, HubScene, SoonScene, TunerScene, ModeChoiceScene, LevelSelectScene, PulsoScene, SaltoScene, FirefliesScene, NinjaScene, ResultsScene, CalibrationScene, TelarScene, PorteroScene, ClimbScene, TowerScene, ForgeScene, WizardScene, CourseScene, FlowScene, PlacementScene, SettingsScene, TurboScene]);
