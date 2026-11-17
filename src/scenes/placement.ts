@@ -26,6 +26,8 @@ import { fit } from './flow';
 interface PlacementData {
   stage?: 'intro' | 'round' | 'summary';
   done?: ProbeResult[];
+  /** Opened from the settings: "Volver" instead of "Empezar desde cero" (nothing is overwritten). */
+  retake?: boolean;
 }
 
 const SKILL_ES: Record<string, string> = { frets: 'Trastes', strings: 'Cuerdas', chords: 'Acordes', scales: 'Escalas', rhythm: 'Ritmo' };
@@ -57,7 +59,7 @@ export class PlacementScene extends Phaser.Scene {
       hooks.fake = null;
     });
     const stage = data.stage ?? 'intro';
-    if (stage === 'intro') this.intro();
+    if (stage === 'intro') this.intro(!!data.retake);
     else if (stage === 'round') void this.round();
     else void this.summary();
   }
@@ -68,7 +70,7 @@ export class PlacementScene extends Phaser.Scene {
   }
 
   // ---- intro ------------------------------------------------------------------------------------------------
-  private intro(): void {
+  private intro(retake: boolean): void {
     const store = profileStore(this);
     this.say(W / 2, 8, 'SONDEO DE NIVEL', { scale: 2, color: 'magenta', align: 'center' });
     this.say(W / 2, 28, 'Unos 5 minutos para saltarte lo que ya sabes.', { color: 'foam', align: 'center' });
@@ -88,13 +90,14 @@ export class PlacementScene extends Phaser.Scene {
     this.say(W / 2, 116, 'Afina (T) y calibra (C) antes si no lo has hecho.', { color: 'amber', align: 'center' });
     const start = () => void this.begin();
     const zero = () => {
-      void recordPlacement(store, skippedPlacement(Date.now())).then(() => this.scene.start('hub'));
+      if (retake) this.scene.start('settings', {});
+      else void recordPlacement(store, skippedPlacement(Date.now())).then(() => this.scene.start('hub'));
     };
-    addButtons(this, [{ label: 'Empezar desde cero', id: 'zero', act: zero }, { label: 'Hacer el sondeo', id: 'test', act: start }], H - 30, { w: 120, h: 18, gap: 8 });
+    addButtons(this, [{ label: retake ? 'Volver sin cambios' : 'Empezar desde cero', id: 'zero', act: zero }, { label: 'Hacer el sondeo', id: 'test', act: start }], H - 30, { w: 120, h: 18, gap: 8 });
     drawText(this, W / 2, H - 9, '←→ elegir  Enter aceptar  T afinar  C calibrar', { color: 'dim', align: 'center' });
     const kb = this.input.keyboard!;
     kb.on('keydown-T', () => this.scene.start('tuner'));
-    kb.on('keydown-C', () => this.scene.start('calibration', { then: { scene: 'placement', data: { stage: 'intro' } } }));
+    kb.on('keydown-C', () => this.scene.start('calibration', { then: { scene: 'placement', data: { stage: 'intro', retake } } }));
     kb.on('keydown-ESC', zero);
   }
 

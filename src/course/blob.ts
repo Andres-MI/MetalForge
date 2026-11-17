@@ -123,7 +123,15 @@ export function writeCourse(blob: unknown, patch: (c: CourseBlob) => CourseBlob)
   return base;
 }
 
-export const setPlacement = (blob: unknown, placement: Placement): Record<string, unknown> => writeCourse(blob, (c) => ({ ...c, placement }));
+/** Stores a placement; a repeat never takes anything away: per skill the best level of both is kept. */
+export const setPlacement = (blob: unknown, placement: Placement): Record<string, unknown> =>
+  writeCourse(blob, (c) => {
+    const old = c.placement;
+    if (!old) return { ...c, placement };
+    const skills: Record<string, number> = { ...old.skills };
+    for (const [k, v] of Object.entries(placement.skills)) skills[k] = Math.max(skills[k] ?? 0, v);
+    return { ...c, placement: { at: placement.at, skipped: old.skipped && placement.skipped, skills } };
+  });
 export const markTuner = (blob: unknown): Record<string, unknown> => writeCourse(blob, (c) => ({ ...c, tuner: true }));
 export const setManual = (blob: unknown, moduleId: string, on: boolean): Record<string, unknown> =>
   writeCourse(blob, (c) => ({ ...c, manual: on ? [...new Set([...c.manual, moduleId])] : c.manual.filter((m) => m !== moduleId) }));

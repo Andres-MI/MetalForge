@@ -298,6 +298,16 @@ describe('sondeo de nivel', () => {
     expect(p.skipped).toBe(false);
   });
 
+  it('repetir el sondeo no quita lo ganado: se queda el mejor nivel de cada habilidad', () => {
+    const first = setPlacement({}, { at: 1, skipped: false, skills: { frets: 5, chords: 2 } });
+    const retake = setPlacement(first, { at: 2, skipped: false, skills: { frets: 2, scales: 3 } });
+    expect(readCourse(retake).placement).toEqual({ at: 2, skipped: false, skills: { frets: 5, chords: 2, scales: 3 } });
+    // "Empezar desde cero" on top of a real placement keeps it too.
+    expect(readCourse(setPlacement(first, skippedPlacement(3))).placement?.skills).toEqual({ frets: 5, chords: 2 });
+    expect(readCourse(setPlacement(first, skippedPlacement(3))).placement?.skipped).toBe(false);
+    expect(readCourse(setPlacement({}, skippedPlacement(3))).placement?.skipped).toBe(true);
+  });
+
   it('un sondeo bien jugado desbloquea varios módulos y uno flojo ninguno de más', () => {
     const good = placementFromResults(
       PLACEMENT_PROBES.flat().map((p) => pass(p.skill, p.level)),

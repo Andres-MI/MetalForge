@@ -57,7 +57,7 @@ export class SettingsScene extends Phaser.Scene {
         { id: 'metro', label: 'Metrónomo en los juegos', value: (s.metronomeOn ?? true) ? 'sí' : 'no', act: async () => { await store.setSettings({ metronomeOn: !(s.metronomeOn ?? true) }); again(); } },
         { id: 'instrument', label: 'Instrumento', value: SHORT_LABEL[l.instrument], act: () => this.scene.start('picker') },
         { id: 'calibrate', label: 'Calibrar la latencia', value: s.latencyOffset === undefined ? 'sin hacer' : `${Math.round(s.latencyOffset * 1000)} ms`, act: () => this.scene.start('calibration', { then: { scene: 'settings' } }) },
-        { id: 'placement', label: 'Repetir el sondeo de nivel', act: () => this.scene.start('placement', { stage: 'intro' }) },
+        { id: 'placement', label: 'Repetir el sondeo de nivel', act: () => this.scene.start('placement', { stage: 'intro', retake: true }) },
         { id: 'unlock', label: 'Desbloquear módulos a mano', value: `${l.state.unlocked.length}/${l.state.modules.length} abiertos`, act: () => go('unlock') },
         { id: 'reset', label: 'Borrar el progreso', value: SHORT_LABEL[l.instrument], color: 'magenta', act: () => go('confirm') },
       ];
