@@ -159,12 +159,13 @@ export function fakePluck(time: number, midi?: number, opts: { rms?: number; det
 /**
  * The events of a strummed chord as the real detector would report them: the attack, the chord's first note and the
  * `strum` event with a strength per candidate. `muted` lists tones that did not sound, `foreign` notes of another chord
- * that did. Without `muted`/`foreign` it is a perfect strum.
+ * that did. `level` (default 1) is the strength of the tones that do sound: 0.5-0.85 gives a chord that is accepted but not clean.
+ * Without `muted`/`foreign` it is a perfect strum.
  */
-export function fakeChord(time: number, chord: ChordKind, opts: { muted?: number[]; foreign?: number[]; rms?: number; detectionDelay?: number } = {}): DetectorEvent[] {
+export function fakeChord(time: number, chord: ChordKind, opts: { muted?: number[]; foreign?: number[]; rms?: number; detectionDelay?: number; level?: number } = {}): DetectorEvent[] {
   const set = chordSet(chord);
   const strengths: Record<number, number> = {};
-  for (const m of set.required) strengths[m] = opts.muted?.includes(m) ? 0 : 1;
+  for (const m of set.required) strengths[m] = opts.muted?.includes(m) ? 0 : opts.level ?? 1;
   for (const m of set.contradicting) strengths[m] = opts.foreign?.includes(m) ? 1 : 0;
   const first = fakePluck(time, chord.midis[0], { rms: opts.rms });
   return [...first, { type: 'strum', time, emittedAt: time + (opts.detectionDelay ?? 0.23), strengths, shadowed: [] }];

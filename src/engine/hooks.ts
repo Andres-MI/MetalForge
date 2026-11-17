@@ -183,6 +183,85 @@ export interface TowerHook {
   over: boolean;
 }
 
+/** Forja (learn, chords) live state for automation. */
+export interface ForgeHook {
+  /** 'round' = the chords of the level, 'offer' = round done at a change level (Enter: one-minute changes, R: results), 'minute' = the minute round. */
+  phase: 'round' | 'offer' | 'minute';
+  timed: boolean;
+  /** Target waiting (untimed) or next to play (timed), the chord group it belongs to, and how many groups there are. */
+  index: number;
+  group: number;
+  groups: number;
+  /** Chord shown now: name ("Em"), Spanish name, tones, and the MIDI notes of its tones (bass: of its notes). */
+  name: string;
+  label: string;
+  tones: string[];
+  midis: number[];
+  /** What the Judge waits for right now (the chord on screen can lag behind it for a moment): name, tones' MIDI and, on bass, the note's MIDI. */
+  awaited: { name: string; midis: number[]; next: number | null };
+  /** Bass: notes of the chord played so far and the notes it needs. */
+  step: number;
+  steps: number;
+  /** Last strum: 'none' | 'listening' (verdict on the way) | 'ok' | 'wrong'. */
+  verdict: 'none' | 'listening' | 'ok' | 'wrong';
+  clean: boolean;
+  cleanliness: number;
+  /** Notes that did not sound, string numbers (1 = thinnest) to check, strings (index, 0 = lowest) lit as missing/present. */
+  missing: string[];
+  missingStrings: number[];
+  missingIdx: number[];
+  presentIdx: number[];
+  /** Notes of another chord that sounded and the chord they point to ('' when none). */
+  foreign: string[];
+  lookAlike: string;
+  /** Texts on screen: headline and the two detail lines. */
+  headline: string;
+  msg1: string;
+  msg2: string;
+  /** Heat of the ingot 0..1 and hammer strikes so far (one per accepted chord). */
+  heat: number;
+  strikes: number;
+  /** Timed level: judgement label of the last chord ('' none). */
+  timing: string;
+  /** One-minute round (null outside it). */
+  minute: { started: boolean; remaining: number; changes: number; clean: number; best: number; over: boolean; pair: string; message: string } | null;
+  over: boolean;
+}
+
+/** Hechicero (arcade, chords) live state for automation. */
+export interface WizardHook {
+  /** 'foes' = the wave's enemies, 'boss' = the shield boss at the end of wave 3. */
+  stage: 'foes' | 'boss';
+  wave: number;
+  waves: number;
+  attempt: number;
+  restarts: number;
+  hearts: number;
+  score: number;
+  combo: number;
+  bestCombo: number;
+  multiplier: number;
+  /** Change chain (quick changes in a row). */
+  chain: number;
+  timed: boolean;
+  /** Seconds per plain enemy (untimed) or tempo (timed). */
+  limit: number;
+  bpm: number;
+  /** Seconds left on the live enemy (null with none) and whether a strum is being judged ("casting"). */
+  remaining: number | null;
+  casting: boolean;
+  /** The live enemy: chord, notes still to play (bass), and whether it is the boss; null with none. */
+  foe: { name: string; steps: number; done: number; boss: boolean; rune: string[]; midis: number[] } | null;
+  /** Boss shield: plates left of the total (0/0 outside the boss). */
+  plates: number;
+  platesTotal: number;
+  /** Last cast: 'none' | 'critical' | 'normal' | 'fizzle' | 'arrived', and its points. */
+  last: string;
+  lastPoints: number;
+  banner: string;
+  over: boolean;
+}
+
 export interface MetalforgeHooks {
   /** MIDI notes the detector reported as attacks, most recent last (the tuner scene fills it). */
   heard: number[];
@@ -220,6 +299,9 @@ export interface MetalforgeHooks {
   /** Escalada (learn) and Torre (arcade) live state, or null outside them. */
   climb: ClimbHook | null;
   tower: TowerHook | null;
+  /** Forja (learn) and Hechicero (arcade) live state, or null outside them. */
+  forge: ForgeHook | null;
+  wizard: WizardHook | null;
 }
 
 declare global {
@@ -247,6 +329,8 @@ export const hooks: MetalforgeHooks = {
   ninja: null,
   climb: null,
   tower: null,
+  forge: null,
+  wizard: null,
 };
 
 export function installHooks(): void {

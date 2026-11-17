@@ -47,7 +47,7 @@ export const CAST_WAIT = 0.8;
 /** Tunable numbers of the arcade. */
 export const TUNING = {
   /** Cleanliness (0..1, `ChordAnalysis.cleanliness`) from which an accepted chord is a critical hit. */
-  criticalClean: 0.85,
+  criticalClean: 0.6,
   /** A change is "quick" when the cast comes within this share of the enemy's time limit after the previous cast. */
   changeWindow: 0.7,
 };

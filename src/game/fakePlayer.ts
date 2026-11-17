@@ -71,10 +71,11 @@ export interface FakeControl {
   pluck(midi?: number, afterSec?: number): void;
   /**
    * Strums a chord as the real detector would report it (`fakeChord`): the one the session waits for, or `name`.
-   * `mutedStrings` = string indices of the shape that do not sound, `foreign` = MIDI notes of another chord that do.
+   * `mutedStrings` = string indices of the shape that do not sound, `foreign` = MIDI notes of another chord that do, `level` = strength of
+   * the tones that sound (0.5-0.85: accepted but not clean).
    * Injected at now + `afterSec`, without advancing: advance ~0.3 s afterwards so the verdict arrives.
    */
-  strum(opts?: { name?: string; mutedStrings?: number[]; foreign?: number[]; afterSec?: number }): void;
+  strum(opts?: { name?: string; mutedStrings?: number[]; foreign?: number[]; afterSec?: number; level?: number }): void;
   /** Candidates the session gave the input for the chord it waits for ({required, contradicting} MIDI lists). */
   candidates(): { required: number[]; contradicting: number[] };
 }
@@ -108,7 +109,7 @@ export function makeFakeControl(session: GameSession, fake: FakeInput): FakeCont
       const muted = (opts.mutedStrings ?? []).flatMap((s) => (chord!.shape ?? []).filter((p) => p.string === s).map((p) => midiAt(INSTRUMENTS[session.exercise.instrument], p)));
       // An untimed exercise ignores attacks before its start: never inject before the first moment the Judge listens.
       const earliest = session.exercise.timed ? -Infinity : session.clock.beat0Time + 0.05;
-      fake.inject(fakeChord(Math.max(earliest, fake.now() + (opts.afterSec ?? 0)), chord, { muted, foreign: opts.foreign }));
+      fake.inject(fakeChord(Math.max(earliest, fake.now() + (opts.afterSec ?? 0)), chord, { muted, foreign: opts.foreign, level: opts.level }));
     },
     candidates: () => ({ required: [...fake.chordCandidates.required], contradicting: [...fake.chordCandidates.contradicting] }),
   };

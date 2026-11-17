@@ -8,7 +8,7 @@ import { chordDiagram, missingMessage, missingStrings, type MissingNote } from '
 import { chordLabel, lookAlike } from './names';
 
 /** A strum counts as clean (critical hit, hot ingot) from this cleanliness. Tunable. */
-export const CLEAN_THRESHOLD = 0.85;
+export const CLEAN_THRESHOLD = 0.6;
 
 export interface ChordFeedback {
   /** The chord was accepted. */
