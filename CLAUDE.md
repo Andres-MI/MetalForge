@@ -87,7 +87,9 @@ de construcción y sus prompts en `docs/FASES.md`.
 - `src/ui/` — `palette.ts` es la única fuente de colores (claves + `paletteInt`); `style.css` centra el lienzo.
 - `scripts/` — banco de detección y pruebas en navegador.
 - `src/exercises/` — generadores puros y deterministas por semilla (`generate(skill, {instrument, level 1..10, seed,
-  length})`): ritmo, trastes, cuerdas, acordes y escalas. Cada nivel añade UNA dificultad; `itemId` estables.
+  length})`): ritmo, trastes, cuerdas, acordes y escalas. Cada nivel añade UNA dificultad; `itemId` estables. El bajo tiene plan propio de acordes
+  (`BASS_SPECS`, raíz-quinta-octava en forma cerrada) y `levelLabel(skill, level, instrument)` sus etiquetas. Los objetivos de
+  acorde llevan `chord` (ordinal) para agrupar repeticiones. Criterios didácticos en `docs/DISENO.md`.
   Las zonas (`fretsZone`, `stringsZone`, `scalesZone`) no repiten tono: se prueba en `tests/exercises.test.ts`.
 - `src/scoring/` — `Judge`: consume `DetectorEvent` y un `Exercise` y da un `TargetResult` por objetivo (con
   ventanas acierto/pronto/tarde, más anchas en bajo, recortadas por ejercicio a 0,3 y 0,6 veces el hueco mínimo entre notas, con suelo 0,04 s: `clampWindows`). Los acordes pasan por `ChordVerifier`: con `spectralChords` el Judge
@@ -102,7 +104,7 @@ de construcción y sus prompts en `docs/FASES.md`.
   y busca el nivel y la semilla cuyo ejercicio contiene más de ellos), `placement.ts` (qué prueba toca y qué desbloquea el resultado),
   `flow.ts` (jefe, repaso y Turbo como una cadena de juegos existentes: estado puro), `describe.ts` (texto neutro de un objetivo) y
   `service.ts` (lee y escribe el blob a través del `ProfileStore`).
-- `src/progress/` — dominio por `itemId` con repetición espaciada (`updateMastery`, `pickForReview`,
+- `src/progress/` — dominio por `itemId` con repetición espaciada (`updateMastery`: una actualización por itemId y ronda; `pickForReview`,
   `toJSON`/`fromJSON`). El tiempo se inyecta; el guardado es de `src/profile/`.
 - `src/game/` — motor de juego común (guía en `docs/JUEGOS.md`): `GameClock` (tiempo del AudioContext), `Metronome`,
   `GameSession` (entrada + reloj + `Exercise` + `Judge`, eventos tipados, guarda el dominio; con acordes pasa al detector las notas del acorde actual con `setChordCandidates`), `FakeInput`/`playFake` (`fakeChord` = rasgueo con evento `strum`)

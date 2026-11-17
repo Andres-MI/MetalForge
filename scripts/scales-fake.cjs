@@ -90,8 +90,10 @@ async function escalada(browser, out) {
     check(c0.roots >= 2 && c0.scaleNotes >= 8, `escalada: roots ${c0.roots} notes ${c0.scaleNotes}`);
     await shot(page, 'c1-espera');
     let heardRun = false;
+    const played = new Set(); // the run goes tonic to tonic and back: it visits part of the position, not all of it
     for (let i = 0; i < c0.total; i++) {
       const c = await climb(page);
+      played.add(c.midi);
       check(c.index === i, `escalada perfect: at ${c.index}, expected ${i}`);
       check(c.climberHold === i - 1, `escalada perfect: climber on hold ${c.climberHold} at target ${i}`);
       if (i === 3) {
@@ -118,7 +120,7 @@ async function escalada(browser, out) {
     await frames(page, 300);
     const end = await climb(page);
     check(end.phase === 'offer', `escalada: after the run phase "${end.phase}"`);
-    check(end.lit === end.scaleNotes || end.lit >= end.scaleNotes - 2, `escalada: lit ${end.lit}/${end.scaleNotes} after the run`);
+    check(end.lit === played.size, `escalada: lit ${end.lit} after the run, expected the ${played.size} different notes of the run (zone ${end.scaleNotes})`);
     check(end.msg.includes('COMPLETA'), `escalada: offer message "${end.msg}"`);
     await shot(page, 'c4-oferta');
     // ---- free round ----
