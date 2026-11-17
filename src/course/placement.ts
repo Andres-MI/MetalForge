@@ -5,9 +5,10 @@
  * only played when the easy one went well (so a beginner finishes in about two minutes and an experienced player
  * in about five). A probe is passed with two stars or more (score >= 0.65, the same bar as the arcades).
  *
- * Meaning: `skills[skill]` = level of the hardest probe passed (0 = the easy one failed). In progress.ts a
- * level up to that one counts as cleared with two stars in the learn game and the arcade of the skill, and a
- * module whose first probe was passed is open.
+ * Meaning: `skills[skill]` = level of the hardest probe passed (0 = the easy one failed). A module whose first probe
+ * was passed is open. In progress.ts the credit is only for the LEARN game, and `placementCredit` says how far: a short
+ * probe proves the levels below it (N-1); only a hard probe of at least HARD_PROBE_TARGETS targets proves its own level N.
+ * Placement never grants arcade stars, so a five-note test cannot complete a module's practice or open the next module.
  */
 import type { SkillId } from '../model/exercise';
 import type { Placement } from './blob';
@@ -15,6 +16,17 @@ import { PLACEMENT_PROBES } from './data';
 import type { PlacementProbe } from './types';
 
 export const PROBE_PASS_STARS = 2;
+/** A hard probe with at least this many targets proves its own level, not just the ones below. */
+export const HARD_PROBE_TARGETS = 6;
+
+/** Highest learn level a placement of `placed` (level of the hardest probe passed) credits: 0 = none. */
+export function placementCredit(skill: SkillId, placed: number): number {
+  if (placed <= 0) return 0;
+  const group = PLACEMENT_PROBES.find((g) => g[0].skill === skill);
+  const index = group ? group.findIndex((p) => p.level === placed) : -1;
+  const hard = index > 0 && group![index].length >= HARD_PROBE_TARGETS;
+  return hard ? placed : placed - 1;
+}
 
 export interface ProbeResult {
   skill: SkillId;

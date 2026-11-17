@@ -3,7 +3,7 @@ import { BASS_COURSE, courseFor, GUITAR_COURSE, PLACEMENT_PROBES } from '../src/
 import { emptyCourse, migrateLegacy, readCourse, readLevels, readTurbo, setManual, setPlacement, writeLevel, writeStep, writeTurbo } from '../src/course/blob';
 import { deriveCourse, highestCleared, newlyCompleted, newlyUnlocked, starsAt, unlockedSkills } from '../src/course/progress';
 import { advance, bossFlow, bossPassed, meanStars, reviewFlow, turboFlow, turboRecord, turboStartLevel } from '../src/course/flow';
-import { nextProbe, placementFromResults, skippedPlacement, type ProbeResult } from '../src/course/placement';
+import { nextProbe, placementCredit, placementFromResults, skippedPlacement, type ProbeResult } from '../src/course/placement';
 import { bestExercise, dueBySkill, planReview, skillOfItem, summarizeReview } from '../src/course/review';
 import { generate, MAX_LEVEL } from '../src/exercises';
 import { describeTarget } from '../src/course/describe';
@@ -187,14 +187,21 @@ describe('desbloqueo y progreso derivado', () => {
 
   it('el sondeo da por cumplidos los niveles superados: abre en cadena y marca por dónde seguir', () => {
     const blob = setPlacement({}, { at: NOW, skipped: false, skills: { rhythm: 5, frets: 2 } });
-    expect(starsAt(blob, 'salto', 3)).toBe(2);
+    // the rhythm hard probe (level 5, 8 beats) proves its own level, only in the LEARN game
+    expect(starsAt(blob, 'pulso', 3)).toBe(2);
     expect(starsAt(blob, 'pulso', 5)).toBe(2);
-    expect(starsAt(blob, 'salto', 6)).toBe(0);
+    expect(starsAt(blob, 'pulso', 6)).toBe(0);
+    // placement never grants arcade stars
+    expect(starsAt(blob, 'salto', 3)).toBe(0);
+    expect(starsAt(blob, 'salto', 1)).toBe(0);
     const s = state(blob);
     expect(s.unlocked).toEqual(['prep', 'rhythm', 'frets']);
-    expect(s.modules[1].practiceDone).toBe(true);
-    // Frets: levels 1 and 2 are credited, so the first level left to learn is 3.
-    expect(s.modules[2].steps[0]).toMatchObject({ done: false, level: 3 });
+    expect(s.modules[1].steps[0].done).toBe(true); // learn is credited...
+    expect(s.modules[1].practiceDone).toBe(false); // ...but the practice step still has to be played
+    // Frets: the easy probe (level 2, 5 notes) proves level 1 only, so the first level left to learn is 2.
+    expect(s.modules[2].steps[0]).toMatchObject({ done: false, level: 2 });
+    expect(starsAt(blob, 'fireflies', 1)).toBe(2);
+    expect(starsAt(blob, 'fireflies', 2)).toBe(0);
   });
 
   it('empezar desde cero no desbloquea nada', () => {
@@ -296,7 +303,7 @@ describe('sondeo de nivel', () => {
   });
 
   it('el resultado se convierte en el mayor nivel superado por habilidad', () => {
-    const p = placementFromResults([pass('frets', 2), pass('frets', 5), pass('strings', 2), fail('strings', 5), fail('chords', 2), pass('scales', 1), pass('scales', 3), pass('rhythm', 2), fail('rhythm', 5)], NOW);
+    const p = placementFromResults([pass('frets', 2), pass('frets', 5), pass('strings', 2), fail('strings', 5), fail('chords', 2), pass('scales', 2), pass('scales', 3), pass('rhythm', 2), fail('rhythm', 5)], NOW);
     expect(p.skills).toEqual({ frets: 5, strings: 2, chords: 0, scales: 3, rhythm: 2 });
     expect(p.skipped).toBe(false);
   });
@@ -572,4 +579,42 @@ describe('cobertura del curso: aprender enseña todo lo que piden práctica y je
         expect([...taught].sort((a, b) => a - b)).toEqual(Array.from({ length: taught.size }, (_, i) => i + 1));
       }
     });
+});
+
+describe('sondeo: lo que concede', () => {
+  const pass = (skill: ProbeResult['skill'], level: number): ProbeResult => ({ skill, level, stars: 2 });
+  it('un sondeo corto prueba los niveles de debajo (N-1); solo uno difícil de 6+ objetivos prueba el suyo', () => {
+    expect(placementCredit('frets', 2)).toBe(1); // easy, 5 notes
+    expect(placementCredit('frets', 5)).toBe(4); // hard but only 5 notes
+    expect(placementCredit('rhythm', 2)).toBe(1);
+    expect(placementCredit('rhythm', 5)).toBe(5); // hard, 8 beats
+    expect(placementCredit('scales', 3)).toBe(3); // hard, the whole run
+    expect(placementCredit('chords', 0)).toBe(0);
+  });
+
+  it('el sondeo nunca da estrellas de arcade ni completa la práctica, y las sondas de acordes y escalas son largas', () => {
+    const everything = placementFromResults(PLACEMENT_PROBES.flat().map((p) => pass(p.skill, p.level)), NOW);
+    const blob = setPlacement({}, everything);
+    for (const g of Object.values(GAMES)) if (g.mode === 'practice') for (let l = 1; l <= MAX_LEVEL; l++) expect(starsAt(blob, g.id, l)).toBe(0);
+    const s = state(blob);
+    expect(s.modules.every((m) => !m.practiceDone)).toBe(true);
+    const chords = PLACEMENT_PROBES.flat().filter((p) => p.skill === 'chords');
+    for (const p of chords) expect(p.length).toBeGreaterThanOrEqual(4);
+    for (const inst of ['guitar', 'bass4', 'bass5'] as InstrumentId[])
+      for (const p of PLACEMENT_PROBES.flat().filter((q) => q.skill === 'scales')) {
+        const ex = generate('scales', { instrument: inst, level: p.level, seed: 3, length: p.length });
+        const midis = ex.targets.map((t) => (t.kind as { midi: number }).midi);
+        expect(midis.length, `${inst} L${p.level}`).toBeGreaterThanOrEqual(6);
+        expect(midis[midis.length - 1], `${inst} L${p.level} ends back on the start`).toBe(midis[0]); // the descent is included
+      }
+    for (const inst of ['guitar', 'bass4', 'bass5'] as InstrumentId[])
+      for (const p of chords) expect(new Set(generate('chords', { instrument: inst, level: p.level, seed: 5, length: p.length }).targets.map((t) => t.itemId)).size).toBeGreaterThanOrEqual(2);
+  });
+
+  it('un perfil antiguo con sondeo (N completo) carga y solo pierde el crédito de arcade', () => {
+    const old = { course: { tuner: true, placement: { at: 1, skipped: false, skills: { rhythm: 5, scales: 3 } } } };
+    expect(starsAt(old, 'pulso', 5)).toBe(2);
+    expect(starsAt(old, 'salto', 3)).toBe(0);
+    expect(state(old).unlocked).toContain('scales');
+  });
 });

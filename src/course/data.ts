@@ -151,13 +151,14 @@ export function moduleOfGame(course: Course, gameId: string): CourseModule | und
 /**
  * Placement test (about five minutes): per skill an easy probe and a harder one, played in the order of the
  * design document (frets on one string, string changes, chords or root-fifth-octave, a short scale run, a
- * short rhythm). The harder probe is only offered when the easy one went well. Tuning and calibration come
+ * short rhythm). Chords probes have at least 4 targets (two chords, repeated or changed) and the scales probes are the
+ * whole run up and back down. The harder probe is only offered when the easy one went well. Tuning and calibration come
  * before them (the scene asks for them), not as probes.
  */
 export const PLACEMENT_PROBES: PlacementProbe[][] = [
   [{ skill: 'frets', level: 2, length: 5 }, { skill: 'frets', level: 5, length: 5 }],
   [{ skill: 'strings', level: 2, length: 5 }, { skill: 'strings', level: 5, length: 5 }],
-  [{ skill: 'chords', level: 2, length: 2 }, { skill: 'chords', level: 4, length: 2 }],
-  [{ skill: 'scales', level: 1, length: 6 }, { skill: 'scales', level: 3, length: 6 }],
+  [{ skill: 'chords', level: 2, length: 4 }, { skill: 'chords', level: 6, length: 4 }],
+  [{ skill: 'scales', level: 2, length: 11 }, { skill: 'scales', level: 3, length: 15 }],
   [{ skill: 'rhythm', level: 2, length: 8 }, { skill: 'rhythm', level: 5, length: 8 }],
 ];
