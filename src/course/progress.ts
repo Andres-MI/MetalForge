@@ -6,7 +6,6 @@
  * Stars of a level, in order of trust:
  *  - the stored best (`levels`), exact;
  *  - the placement test: levels up to the one passed count as two stars, in the learn and the arcade game;
- *  - an arcade record from before the course existed (`arcadeBest` with points): counts as two stars;
  *  - a learn level is also met when the arcade of the same skill was cleared with two stars at that level or above.
  */
 import { GAMES } from '../game/registry';
@@ -66,6 +65,8 @@ export interface CourseState {
 export interface CourseContext {
   /** The latency was measured (settings.latencyOffset is set). */
   calibrated: boolean;
+  /** Development and test flag: every module counts as opened by hand. */
+  open?: boolean;
 }
 
 const STEP_LABEL: Record<string, string> = { learn: 'Aprender', practice: 'Practicar', review: 'Repasar', boss: 'Jefe' };
@@ -77,8 +78,7 @@ export function starsAt(blob: unknown, gameId: string, level: number): number {
   const stored = readLevels(blob)[`${gameId}:${level}`]?.stars ?? 0;
   const placed = readCourse(blob).placement?.skills[def.skill] ?? 0;
   const virtual = level <= placed ? 2 : 0;
-  const legacy = def.mode === 'practice' && (readBest(blob, gameId, level)?.score ?? 0) > 0 ? 2 : 0;
-  return Math.max(stored, virtual, legacy);
+  return Math.max(stored, virtual);
 }
 
 function goalsMet(blob: unknown, step: PlayStep): number {
@@ -121,7 +121,7 @@ export function deriveCourse(course: Course, blob: unknown, ctx: CourseContext):
     if (m.requires.length === 0) reason = 'start';
     else if (m.requires.every((r) => practiceDone.get(r))) reason = 'requires';
     else if (m.skill && (rec.placement?.skills[m.skill] ?? 0) >= 1) reason = 'placement';
-    else if (rec.manual.includes(m.id)) reason = 'manual';
+    else if (rec.manual.includes(m.id) || ctx.open) reason = 'manual';
     const unlocked = reason !== null;
 
     const steps: StepStatus[] = m.steps.map((s): StepStatus => {
@@ -177,5 +177,26 @@ export function unlockedSkills(state: CourseState): NonNullable<CourseModule['sk
 export function highestCleared(blob: unknown, gameId: string): number {
   let best = 0;
   for (let l = 1; l <= MAX_LEVEL; l++) if (starsAt(blob, gameId, l) >= 1) best = l;
+  return best;
+}
+
+export interface GameBest {
+  /** Highest level played, with its best stars. */
+  level: number;
+  stars: number;
+  /** Best arcade score at that level (null for learn games or when none). */
+  score: number | null;
+}
+
+/** What the hub shows for a game: the highest level played (stored records only) and its best stars and points. */
+export function bestFor(blob: unknown, gameId: string): GameBest | null {
+  const levels = readLevels(blob);
+  let best: GameBest | null = null;
+  for (let l = 1; l <= MAX_LEVEL; l++) {
+    const rec = levels[`${gameId}:${l}`];
+    const score = readBest(blob, gameId, l)?.score ?? null;
+    if (!rec && score === null) continue;
+    best = { level: l, stars: rec?.stars ?? 0, score };
+  }
   return best;
 }

@@ -76,7 +76,7 @@ function build(s: ModuleSpec): CourseModule {
 }
 
 const RHYTHM = (practiceLevel: number): ModuleSpec => ({
-  id: 'rhythm', title: 'Ritmo', skill: 'rhythm', cabinet: 'pulse', accent: 'cyan', blurb: 'Tocar en el golpe: negras, corcheas, síncopa.',
+  id: 'rhythm', title: 'Ritmo', skill: 'rhythm', cabinet: 'pulse', accent: 'cyan', blurb: 'Tocar en el golpe, de negras a síncopas.',
   learn: 'pulso', arcade: 'salto', learnLevels: [1, 2, 3], practiceLevel, bossTitle: 'EL METRÓNOMO LOCO', bossLevels: [practiceLevel + 1, practiceLevel + 2, practiceLevel + 2], requires: [],
 });
 const FRETS = (requires: string[]): ModuleSpec => ({
@@ -88,12 +88,12 @@ const STRINGS = (requires: string[]): ModuleSpec => ({
   learn: 'telar', arcade: 'portero', learnLevels: [1, 2, 3], practiceLevel: 3, bossTitle: 'LA ARAÑA DEL TELAR', bossLevels: [4, 5, 5], requires,
 });
 const CHORDS = (requires: string[], bass: boolean): ModuleSpec => ({
-  id: 'chords', title: bass ? 'Raíz, quinta y octava' : 'Acordes', skill: 'chords', cabinet: 'forge', accent: 'amber',
-  blurb: bass ? 'Fundamental, quinta y octava de cada acorde.' : 'Formar los acordes abiertos y limpios.',
+  id: 'chords', title: 'Acordes', skill: 'chords', cabinet: 'forge', accent: 'amber',
+  blurb: bass ? 'Raíz, quinta y octava de cada acorde.' : 'Formar acordes abiertos y limpios.',
   learn: 'forge', arcade: 'wizard', learnLevels: [1, 2, 3], practiceLevel: 3, bossTitle: 'EL HERRERO OSCURO', bossLevels: [4, 4, 5], requires,
 });
 const SCALES = (requires: string[]): ModuleSpec => ({
-  id: 'scales', title: 'Escalas', skill: 'scales', cabinet: 'climb', accent: 'violet', blurb: 'Pentatónica y escala mayor en el mástil.',
+  id: 'scales', title: 'Escalas', skill: 'scales', cabinet: 'climb', accent: 'violet', blurb: 'Pentatónica y escala mayor.',
   learn: 'climb', arcade: 'tower', learnLevels: [1, 2, 3], practiceLevel: 3, bossTitle: 'EL GUARDIÁN DE LA TORRE', bossLevels: [4, 4, 5], requires,
 });
 

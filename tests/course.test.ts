@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { BASS_COURSE, courseFor, GUITAR_COURSE, PLACEMENT_PROBES } from '../src/course/data';
-import { emptyCourse, readCourse, readLevels, readTurbo, setManual, setPlacement, writeLevel, writeStep, writeTurbo } from '../src/course/blob';
+import { emptyCourse, migrateLegacy, readCourse, readLevels, readTurbo, setManual, setPlacement, writeLevel, writeStep, writeTurbo } from '../src/course/blob';
 import { deriveCourse, highestCleared, newlyCompleted, newlyUnlocked, starsAt, unlockedSkills } from '../src/course/progress';
 import { advance, bossFlow, bossPassed, meanStars, reviewFlow, turboFlow, turboRecord, turboStartLevel } from '../src/course/flow';
 import { nextProbe, placementFromResults, skippedPlacement, type ProbeResult } from '../src/course/placement';
 import { bestExercise, dueBySkill, planReview, skillOfItem, summarizeReview } from '../src/course/review';
 import { generate, MAX_LEVEL } from '../src/exercises';
+import { describeTarget } from '../src/course/describe';
 import { GAMES } from '../src/game/registry';
 import type { InstrumentId } from '../src/model/instrument';
 import { DAY_MS, emptyMastery, toJSON, updateMastery } from '../src/progress';
@@ -197,18 +198,31 @@ describe('desbloqueo y progreso derivado', () => {
     expect(state(setPlacement({}, skippedPlacement(NOW))).unlocked).toEqual(['prep', 'rhythm']);
   });
 
-  it('un perfil antiguo sin claves nuevas carga y conserva lo que tenía', () => {
+  it('un perfil antiguo sin claves nuevas carga, se migra una vez y conserva lo que tenía', () => {
     const old = {
-      mastery: toJSON(updateMastery(emptyMastery(), [res('rhythm:quarter'), res('frets:guitar:s0:f3')], NOW)),
-      arcadeBest: { 'salto:3': { score: 900, bestCombo: 12 }, 'ninja:2': { score: 300, bestCombo: 3 } },
+      mastery: toJSON(updateMastery(emptyMastery(), [res('rhythm:quarters'), res('frets:guitar:s0:f3')], NOW)),
+      arcadeBest: { 'salto:3': { score: 900, bestCombo: 12 }, 'ninja:2': { score: 300, bestCombo: 3 }, 'portero:1': { score: 0, bestCombo: 0 } },
     };
     expect(readLevels(old)).toEqual({});
     expect(readCourse(old)).toEqual(emptyCourse());
-    const s = state(old);
-    // The arcade record of Salto level 3 counts as two stars: Trastes is open, and Ninja 2 is not enough for Cuerdas.
-    expect(s.unlocked).toEqual(['prep', 'rhythm', 'frets']);
-    expect(starsAt(old, 'salto', 3)).toBe(2);
-    expect(starsAt(old, 'ninja', 3)).toBe(0);
+    // Before the migration the course reads it as the start of the course, without errors.
+    expect(state(old).unlocked).toEqual(['prep', 'rhythm']);
+    const m = migrateLegacy(old);
+    expect(m.changed).toBe(true);
+    // The arcade record of Salto level 3 becomes two stars: Trastes is open, and Ninja 2 is not enough for Cuerdas.
+    expect(starsAt(m.blob, 'salto', 3)).toBe(2);
+    expect(starsAt(m.blob, 'ninja', 2)).toBe(2);
+    expect(starsAt(m.blob, 'ninja', 3)).toBe(0);
+    expect(starsAt(m.blob, 'portero', 1)).toBe(0);
+    expect(state(m.blob).unlocked).toEqual(['prep', 'rhythm', 'frets']);
+    // Old keys are untouched, and a second migration does nothing (a new arcade record must not count by itself).
+    expect((m.blob as typeof old).arcadeBest).toEqual(old.arcadeBest);
+    expect((m.blob as typeof old).mastery).toEqual(old.mastery);
+    expect(migrateLegacy(m.blob).changed).toBe(false);
+    const played = { ...(m.blob as object), arcadeBest: { ...old.arcadeBest, 'ninja:3': { score: 50, bestCombo: 2 } } };
+    expect(starsAt(played, 'ninja', 3)).toBe(0);
+    // A fresh profile migrates to an empty course.
+    expect(migrateLegacy(undefined).blob).toEqual({ course: { manual: [], steps: {}, tuner: false, migrated: true } });
     // Writing the new keys leaves the old ones alone.
     const next = writeLevel(old, 'pulso', 1, 2, NOW) as typeof old;
     expect(next.arcadeBest).toEqual(old.arcadeBest);
@@ -492,4 +506,29 @@ describe('flujos: jefes, repasos y Turbo', () => {
     expect((blob as { mastery: unknown }).mastery).toEqual({ version: 1, items: {} });
   });
 
+});
+
+describe('texto neutro del sondeo', () => {
+  it('describe notas, acordes de guitarra, raíz-quinta-octava del bajo y golpes', () => {
+    const frets = generate('frets', { instrument: 'guitar', level: 2, seed: 1, length: 5 });
+    const n = describeTarget(frets, 0);
+    expect(n.midis).toHaveLength(1);
+    expect(n.small).toMatch(/^Cuerda \d · traste \d+$/);
+    expect(n.chord).toBeNull();
+
+    const chords = generate('chords', { instrument: 'guitar', level: 2, seed: 1, length: 2 });
+    const c = describeTarget(chords, 0);
+    expect(c.chord).toBeTruthy();
+    expect(c.big).toMatch(/mayor|menor/);
+    expect(c.midis.length).toBeGreaterThanOrEqual(3);
+    expect(c.small).toMatch(/^Cuerdas \(grave a aguda\): (\d|x)( (\d+|x)){5}$/);
+
+    const bass = generate('chords', { instrument: 'bass4', level: 2, seed: 1, length: 2 });
+    const roles = bass.targets.map((_, i) => describeTarget(bass, i).big.match(/\((.*)\)/)?.[1]);
+    expect(roles.slice(0, 3)).toEqual(['fundamental', 'quinta', 'octava']);
+    expect(describeTarget(bass, 0).midis).toHaveLength(1);
+
+    const rhythm = generate('rhythm', { instrument: 'bass5', level: 2, seed: 1, length: 8 });
+    expect(describeTarget(rhythm, 0)).toMatchObject({ midis: [], chord: null });
+  });
 });

@@ -1,9 +1,10 @@
 /** Reads and writes the course data of the profile (no Phaser): the scenes call these. Time is passed in. */
+import { hooks } from '../engine/hooks';
 import type { InstrumentId } from '../model/instrument';
 import type { ProfileStore } from '../profile/store';
 import { readMastery } from '../game/progressBlob';
 import type { Mastery } from '../progress';
-import { markReviewDone, setManual, setPlacement, markTuner, writeLevel, writeStep, writeTurbo, readTurbo, type Placement, type TurboRecord } from './blob';
+import { migrateLegacy, markReviewDone, setManual, setPlacement, markTuner, writeLevel, writeStep, writeTurbo, readTurbo, type Placement, type TurboRecord } from './blob';
 import { courseFor } from './data';
 import { bossPassed, meanStars, turboRecord, type Flow } from './flow';
 import { deriveCourse, newlyCompleted, newlyUnlocked, type CourseState } from './progress';
@@ -19,18 +20,28 @@ export interface Loaded {
 const instrumentOf = (store: ProfileStore): InstrumentId => store.profile.instrument ?? 'guitar';
 
 export function derive(store: ProfileStore, blob: unknown): CourseState {
-  return deriveCourse(courseFor(instrumentOf(store)), blob, { calibrated: store.profile.settings.latencyOffset !== undefined });
+  return deriveCourse(courseFor(instrumentOf(store)), blob, { calibrated: store.profile.settings.latencyOffset !== undefined, open: hooks.courseOpen });
+}
+
+/** Reads the progress blob; the first time, an old profile's arcade records are turned into level records (see `migrateLegacy`). */
+async function readBlob(store: ProfileStore): Promise<unknown> {
+  const instrument = instrumentOf(store);
+  const blob = await store.getProgress(instrument);
+  const m = migrateLegacy(blob);
+  if (!m.changed) return blob;
+  await store.saveProgress(instrument, m.blob);
+  return m.blob;
 }
 
 export async function load(store: ProfileStore): Promise<Loaded> {
   const instrument = instrumentOf(store);
-  const blob = await store.getProgress(instrument);
+  const blob = await readBlob(store);
   return { instrument, blob, state: derive(store, blob), mastery: readMastery(blob) };
 }
 
 async function update(store: ProfileStore, fn: (blob: unknown) => Record<string, unknown>): Promise<{ before: CourseState; after: CourseState; blob: Record<string, unknown> }> {
   const instrument = instrumentOf(store);
-  const blob = await store.getProgress(instrument);
+  const blob = await readBlob(store);
   const next = fn(blob);
   await store.saveProgress(instrument, next);
   return { before: derive(store, blob), after: derive(store, next), blob: next };

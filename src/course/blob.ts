@@ -29,6 +29,8 @@ export interface StepRecord {
 }
 
 export interface CourseBlob {
+  /** The arcade records from before the course existed were turned into level records (see `migrateLegacy`). */
+  migrated?: boolean;
   placement?: Placement;
   /** Module ids opened by hand from the settings. */
   manual: string[];
@@ -104,6 +106,7 @@ export function readCourse(blob: unknown): CourseBlob {
     }
   }
   out.tuner = raw.tuner === true;
+  if (raw.migrated === true) out.migrated = true;
   if (isObj(raw.placement)) {
     const p = raw.placement;
     const skills: Record<string, number> = {};
@@ -165,4 +168,24 @@ export function writeTurbo(blob: unknown, gameId: string, run: TurboRecord): { b
   all[gameId] = after;
   base.turbo = all;
   return { blob: base, rank: place };
+}
+
+// ---- profiles from before the course --------------------------------------------------------------------------
+
+/**
+ * One-time migration, done the first time the course reads a profile: every arcade record of the old blob
+ * (`arcadeBest["salto:3"]` with points) becomes a level record with two stars, so a player who got that far keeps
+ * the modules it opens. After it, `course.migrated` is set and arcade records no longer count by themselves
+ * (a new arcade run saves its record BEFORE its stars, which would otherwise open modules too early).
+ */
+export function migrateLegacy(blob: unknown): { blob: Record<string, unknown>; changed: boolean } {
+  const base = clone(blob);
+  if (readCourse(base).migrated) return { blob: base, changed: false };
+  const levels = isObj(base.levels) ? { ...base.levels } : {};
+  const best = isObj(base.arcadeBest) ? base.arcadeBest : {};
+  for (const [k, v] of Object.entries(best)) {
+    if (isObj(v) && (num(v.score) ?? 0) > 0 && !(k in levels)) levels[k] = { stars: 2, plays: 1, at: 0 };
+  }
+  if (Object.keys(levels).length) base.levels = levels;
+  return { blob: writeCourse(base, (c) => ({ ...c, migrated: true })), changed: true };
 }
