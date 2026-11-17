@@ -195,6 +195,18 @@ describe('chords', () => {
   });
 });
 
+describe('rhythm: el primer compás empieza en el tiempo 1', () => {
+  it('siempre hay un ataque en el pulso 0 (todas las semillas, niveles, longitudes e instrumentos)', () => {
+    for (const instrument of INSTS)
+      for (const level of levels)
+        for (let seed = 1; seed <= 40; seed++)
+          for (const length of [4, 8, 16]) {
+            const ex = generate('rhythm', { instrument, level, seed, length });
+            expect(ex.targets[0].beat, `${instrument} L${level} s${seed} len${length}`).toBe(0);
+          }
+  });
+});
+
 describe('scales', () => {
   it('the ordered run starts and ends on the tonic, in every level, instrument and seed (thirds: only the start)', () => {
     const rootOf = (id: string) => (id.startsWith('scales:major') ? 0 : 9);
