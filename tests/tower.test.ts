@@ -137,7 +137,7 @@ describe('Torre rules: untimed floor', () => {
   });
 
   it('a wrong note halves the combo and slips, costs no heart; the right note after it is clumsy and breaks the clean phase', () => {
-    const { run, midis } = startRun(2);
+    const { run, midis } = startRun(8); // level 8: a two-octave climb, so 6 notes are still mid-ascent
     let now = playFloor(run, 6);
     const combo0 = run.combo;
     expect(combo0).toBe(6);

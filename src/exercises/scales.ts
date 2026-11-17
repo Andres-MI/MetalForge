@@ -8,6 +8,11 @@
  *  7 pentatonic, a position chosen by seed (3-5)       8 major scale, position at fret 7
  *  9 thirds in a position chosen by seed (2-5)         10 timed eighths at 80 bpm
  *
+ * The ordered run always starts and ends on the tonic (A for the pentatonic, C for the major): it climbs from the
+ * lowest tonic of the position to a higher tonic (one octave for levels 1-3 and for thirds, at most two octaves
+ * otherwise) and comes back down to the starting tonic. A position with a single tonic climbs from it to the highest
+ * note of the position and comes back. Thirds are the same climb in steps of a third (they end on the upper tonic).
+ *
  * `free: true` turns every target into `anyOf` the notes of the level's position.
  *
  * Pitch rule: a position lists each pitch once (the lowest-string occurrence), so two itemIds never
@@ -80,6 +85,18 @@ function ladder(inst: Instrument, scale: ScaleDef, posIndex: number): ScaleNote[
   return notes.sort((a, b) => a.midi - b.midi);
 }
 
+/**
+ * The ascending run of a position: lowest tonic up to the tonic `octaves` higher (or the highest one the position
+ * has); with a single tonic, up to the highest note; with none (never in the current tables), the whole position.
+ */
+export function tonicRun(notes: ScaleNote[], rootPc: number, octaves: number): ScaleNote[] {
+  const tonics = notes.filter((n) => (((n.midi - rootPc) % 12) + 12) % 12 === 0);
+  if (tonics.length === 0) return notes;
+  const lo = tonics[0].midi;
+  const hi = tonics.length > 1 ? tonics[Math.min(tonics.length - 1, octaves)].midi : Infinity;
+  return notes.filter((n) => n.midi >= lo && n.midi <= hi);
+}
+
 function resolvePos(spec: Spec, seed: number): number {
   if (typeof spec.pos === 'number') return spec.pos;
   const r = makeRng(seed, 5);
@@ -115,12 +132,13 @@ export function generateScales(opts: GenerateOptions): Exercise {
     return { ...base, bpm: spec.timed ? 60 : undefined, targets };
   }
 
+  const run = tonicRun(notes, scale.rootPc, level <= 3 || spec.pattern === 'thirds' ? 1 : 2);
   let seq: ScaleNote[];
-  if (spec.pattern === 'up') seq = notes;
-  else if (spec.pattern === 'updown') seq = [...notes, ...notes.slice(0, -1).reverse()];
+  if (spec.pattern === 'up') seq = run;
+  else if (spec.pattern === 'updown') seq = [...run, ...run.slice(0, -1).reverse()];
   else {
     seq = [];
-    for (let i = 0; i + 2 < notes.length; i++) seq.push(notes[i], notes[i + 2]);
+    for (let i = 0; i + 2 < run.length; i++) seq.push(run[i], run[i + 2]);
   }
   const cap = opts.length ?? (spec.pattern === 'thirds' ? 16 : Infinity);
   seq = seq.slice(0, cap);

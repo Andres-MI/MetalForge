@@ -196,6 +196,31 @@ describe('chords', () => {
 });
 
 describe('scales', () => {
+  it('the ordered run starts and ends on the tonic, in every level, instrument and seed (thirds: only the start)', () => {
+    const rootOf = (id: string) => (id.startsWith('scales:major') ? 0 : 9);
+    for (const instrument of ['guitar', 'bass4', 'bass5'] as const)
+      for (const level of levels)
+        for (let seed = 1; seed <= 8; seed++) {
+          const ex = generate('scales', { instrument, level, seed });
+          const midis = ex.targets.map((t) => (t.kind as { midi: number }).midi);
+          const root = rootOf(ex.targets[0].itemId);
+          const thirds = level === 4 || level === 5 || level === 9;
+          expect(midis[0] % 12, `${instrument} L${level} s${seed} start`).toBe(root);
+          if (!thirds) expect(midis[midis.length - 1] % 12, `${instrument} L${level} s${seed} end`).toBe(root);
+          // never longer than two octaves up and down (one octave for levels 1-3)
+          const span = Math.max(...midis) - Math.min(...midis);
+          expect(span).toBeLessThanOrEqual(level <= 3 ? 12 : 24);
+          if (level >= 2 && !thirds) expect(midis[midis.length - 1]).toBe(midis[0]); // down to the starting tonic
+        }
+  });
+
+  it('level 3 (C major) is a one-octave run C..C and back, not 33 targets starting on E', () => {
+    const ex = generate('scales', { instrument: 'guitar', level: 3, seed: 1 });
+    const midis = ex.targets.map((t) => (t.kind as { midi: number }).midi);
+    expect(midis.slice(0, 8)).toEqual([48, 50, 52, 53, 55, 57, 59, 60]);
+    expect(midis).toHaveLength(15);
+  });
+
   it('free variant uses anyOf', () => {
     const ex = generate('scales', { instrument: 'bass4', level: 3, seed: 1, free: true, length: 6 });
     expect(ex.targets.length).toBe(6);
