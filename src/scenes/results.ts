@@ -72,11 +72,11 @@ export class ResultsScene extends Phaser.Scene {
       else if (s.tendency === 'drag') [tendency, tColor] = [`Te retrasas  ${fmtMs(ms)} de media`, 'magenta'];
       else [tendency, tColor] = [`Vas en el pulso  ${fmtMs(ms)} de media`, 'lime'];
     }
-    drawText(this, x, 76, 'TENDENCIA', { color: 'dim' });
-    drawText(this, x, 87, tendency, { color: tColor });
+    drawText(this, x, 79, 'TENDENCIA', { color: 'dim' });
+    drawText(this, x, 89, tendency, { color: tColor });
     drawText(this, x, 102, 'GOLPES', { color: 'dim' });
-    drawText(this, x, 113, `${s.hits} a tiempo  ${s.early} pronto  ${s.late} tarde`, { color: 'foam' });
-    drawText(this, x, 124, `${s.miss} sin tocar  ${s.strays} sueltas`, { color: s.strays > 0 ? 'amber' : 'foam' });
+    drawText(this, x, 112, `${s.hits} a tiempo  ${s.early} pronto  ${s.late} tarde`, { color: 'foam' });
+    drawText(this, x, 122, `${s.miss} sin tocar  ${s.strays} sueltas`, { color: s.strays > 0 ? 'amber' : 'foam' });
 
     // Arcade games add their score line; without `arcade` the screen is the same as before.
     if (data.arcade) {
