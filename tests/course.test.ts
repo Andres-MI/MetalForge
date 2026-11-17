@@ -136,7 +136,8 @@ describe('desbloqueo y progreso derivado', () => {
   });
 
   it('un nivel de práctica con estrellas da por cumplidos los niveles de aprender iguales o menores', () => {
-    const s = state(star({ course: { tuner: true } }, 'salto', 3, 2));
+    // learn covers 1..5 in guitar rhythm (the boss uses level 5), so the arcade needs level 5 to credit it all
+    const s = state(star(star({ course: { tuner: true } }, 'salto', 5, 2), 'salto', 3, 2));
     const learn = s.modules[1].steps[0];
     expect(learn.done).toBe(true);
     expect(s.next?.stepId).toBe('review');
@@ -148,9 +149,11 @@ describe('desbloqueo y progreso derivado', () => {
     b = star(b, 'pulso', 2, 1);
     const s = state(b);
     expect(s.modules[1].steps[0]).toMatchObject({ done: false, level: 3 });
-    expect(s.modules[1].steps[0].progress).toBeCloseTo(2 / 3);
+    expect(s.modules[1].steps[0].progress).toBeCloseTo(2 / 5);
     expect(s.next).toMatchObject({ stepId: 'learn', level: 3, game: 'pulso' });
     b = star(b, 'pulso', 3, 1);
+    b = star(b, 'pulso', 4, 1);
+    b = star(b, 'pulso', 5, 1);
     expect(state(b).next?.stepId).toBe('practice');
   });
 
@@ -550,4 +553,23 @@ describe('texto neutro del sondeo', () => {
     const rhythm = generate('rhythm', { instrument: 'bass5', level: 2, seed: 1, length: 8 });
     expect(describeTarget(rhythm, 0)).toMatchObject({ midis: [], chord: null });
   });
+});
+
+describe('cobertura del curso: aprender enseña todo lo que piden práctica y jefe', () => {
+  for (const [family, course] of [['guitar', GUITAR_COURSE], ['bass', BASS_COURSE]] as const)
+    it(`${family}: cada nivel de práctica o de jefe está cubierto por el paso de aprender de su módulo`, () => {
+      for (const m of course.modules) {
+        const learn = m.steps.find((s) => s.kind === 'learn');
+        if (!learn || learn.kind !== 'learn') continue;
+        const taught = new Set(learn.goals.map((g) => g.level));
+        const used: [string, number][] = [];
+        for (const s of m.steps) {
+          if (s.kind === 'practice') s.goals.forEach((g) => used.push([`${m.id} practicar`, g.level]));
+          if (s.kind === 'boss') s.phases.forEach((p) => used.push([`${m.id} jefe`, p.level]));
+        }
+        for (const [where, level] of used) expect(taught.has(level), `${family} ${where} usa el nivel ${level}, que aprender no cubre`).toBe(true);
+        // and the learn step has no gaps: 1..n
+        expect([...taught].sort((a, b) => a - b)).toEqual(Array.from({ length: taught.size }, (_, i) => i + 1));
+      }
+    });
 });
