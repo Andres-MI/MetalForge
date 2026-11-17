@@ -431,7 +431,7 @@ export class WizardScene extends Phaser.Scene {
       if (what === 'boss') {
         run.enterBoss();
         banner = '¡JEFE!';
-        bannerSub = `Rompe su escudo: ${bossLength(data.level)} acordes`;
+        bannerSub = `Escudo: ${bossLength(data.level)} acordes`;
         bannerColor = 'magenta';
       } else if (what === 'fail') {
         const f: WaveFail = run.failWave();
