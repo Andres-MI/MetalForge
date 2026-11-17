@@ -7,7 +7,7 @@ const url = process.argv[2] ?? 'http://localhost:5183/';
 (async () => {
   const browser = await chromium.launch();
   const page = await (await browser.newContext({ viewport: { width: 1280, height: 720 } })).newPage();
-  await page.goto(url);
+  await page.goto(url + (url.includes('?') ? '&' : '?') + 'curso=abierto');
   await page.waitForFunction(() => ['picker', 'hub'].includes(window.__metalforge?.scene));
   if ((await page.evaluate(() => window.__metalforge.scene)) === 'picker') await page.keyboard.press('Enter');
   const waitScene = async (n) => {

@@ -14,7 +14,7 @@ const { resolve } = require('node:path');
   const errors = [];
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto(url);
+  await page.goto(url + (url.includes('?') ? '&' : '?') + 'curso=abierto');
   await page.waitForFunction(() => ['picker', 'hub'].includes(window.__metalforge?.scene));
   if ((await page.evaluate(() => window.__metalforge.scene)) === 'picker') await page.keyboard.press('Enter');
   await page.waitForFunction(() => window.__metalforge.scene === 'hub');
