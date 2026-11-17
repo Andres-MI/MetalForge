@@ -2,7 +2,10 @@
  * Deterministic "player" for a session driven by a FakeInput: plays an exercise in virtual time. Used by
  * unit tests and, through `window.__metalforge.fake`, by browser automation.
  */
+import { CHORDS, chordShape } from '../exercises/chords';
 import type { Target } from '../model/exercise';
+import { INSTRUMENTS, midiAt } from '../model/instrument';
+import type { ChordKind } from '../scoring/chord';
 import { fakeChord, fakePluck, type FakeInput } from './input';
 import type { GameSession } from './session';
 
@@ -66,6 +69,15 @@ export interface FakeControl {
   pluckNote(midi: number, afterSeconds?: number): void;
   /** Injects a pluck right now (+ `afterSec`) with a pitch, without advancing: advance ~0.1 s afterwards so it is heard. */
   pluck(midi?: number, afterSec?: number): void;
+  /**
+   * Strums a chord as the real detector would report it (`fakeChord`): the one the session waits for, or `name`.
+   * `mutedStrings` = string indices of the shape that do not sound, `foreign` = MIDI notes of another chord that do, `level` = strength of
+   * the tones that sound (0.5-0.85: accepted but not clean).
+   * Injected at now + `afterSec`, without advancing: advance ~0.3 s afterwards so the verdict arrives.
+   */
+  strum(opts?: { name?: string; mutedStrings?: number[]; foreign?: number[]; afterSec?: number; level?: number }): void;
+  /** Candidates the session gave the input for the chord it waits for ({required, contradicting} MIDI lists). */
+  candidates(): { required: number[]; contradicting: number[] };
 }
 
 export function makeFakeControl(session: GameSession, fake: FakeInput): FakeControl {
@@ -83,5 +95,22 @@ export function makeFakeControl(session: GameSession, fake: FakeInput): FakeCont
     bpm: () => session.clock.bpm,
     pluckNote: (midi, after = 0) => fake.inject(fakePluck(fake.now() + after, midi)),
     pluck: (midi, afterSec = 0) => fake.inject(fakePluck(fake.now() + afterSec, midi)),
+    strum(opts = {}) {
+      let chord: ChordKind | undefined;
+      if (opts.name) {
+        if (!CHORDS[opts.name]) throw new Error(`unknown chord ${opts.name}`);
+        const shape = chordShape(opts.name);
+        chord = { type: 'chord', name: opts.name, midis: shape.map((p) => midiAt(INSTRUMENTS.guitar, p)), shape };
+      } else {
+        const k = session.exercise.targets[session.currentIndex]?.kind;
+        if (k?.type === 'chord') chord = k;
+      }
+      if (!chord) throw new Error('strum: the session is not waiting for a chord');
+      const muted = (opts.mutedStrings ?? []).flatMap((s) => (chord!.shape ?? []).filter((p) => p.string === s).map((p) => midiAt(INSTRUMENTS[session.exercise.instrument], p)));
+      // An untimed exercise ignores attacks before its start: never inject before the first moment the Judge listens.
+      const earliest = session.exercise.timed ? -Infinity : session.clock.beat0Time + 0.05;
+      fake.inject(fakeChord(Math.max(earliest, fake.now() + (opts.afterSec ?? 0)), chord, { muted, foreign: opts.foreign, level: opts.level }));
+    },
+    candidates: () => ({ required: [...fake.chordCandidates.required], contradicting: [...fake.chordCandidates.contradicting] }),
   };
 }

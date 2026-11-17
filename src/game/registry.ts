@@ -8,6 +8,8 @@ export const GAMES: Record<string, GameDef> = {
   portero: { id: 'portero', title: 'Portero', skill: 'strings', mode: 'practice', scene: 'portero', accent: 'blue', length: 16, cabinet: 'loom' },
   fireflies: { id: 'fireflies', title: 'Luciérnagas', skill: 'frets', mode: 'learn', scene: 'fireflies', accent: 'lime', length: 12, cabinet: 'fireflies' },
   ninja: { id: 'ninja', title: 'Ninja', skill: 'frets', mode: 'practice', scene: 'ninja', accent: 'lime', length: 10, cabinet: 'fireflies' },
+  forge: { id: 'forge', title: 'Forja', skill: 'chords', mode: 'learn', scene: 'forge', accent: 'amber', length: 8, cabinet: 'forge' },
+  wizard: { id: 'wizard', title: 'Hechicero', skill: 'chords', mode: 'practice', scene: 'wizard', accent: 'amber', length: 5, cabinet: 'forge' },
   climb: { id: 'climb', title: 'Escalada', skill: 'scales', mode: 'learn', scene: 'climb', accent: 'violet', length: 40, cabinet: 'climb' },
   tower: { id: 'tower', title: 'Torre', skill: 'scales', mode: 'practice', scene: 'tower', accent: 'violet', length: 40, cabinet: 'climb' },
 };

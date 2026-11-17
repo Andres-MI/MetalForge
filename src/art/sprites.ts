@@ -254,3 +254,7 @@ Object.assign(SPRITES, STRINGS_SPRITES);
 // Escalada and Torre (scales skill).
 import { SCALES_SPRITES } from './sprites-scales';
 Object.assign(SPRITES, SCALES_SPRITES);
+
+// Forja and Hechicero (chords skill).
+import { CHORDS_SPRITES } from './sprites-chords';
+Object.assign(SPRITES, CHORDS_SPRITES);
