@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { DetectorEvent } from '../src/detection/detector';
 import type { Exercise, Target } from '../src/model/exercise';
 import { generate } from '../src/exercises';
+import { summarize } from '../src/scoring/summary';
+import type { ScoredTarget } from '../src/scoring/types';
 import { Judge, MIN_HIT_WINDOW, MIN_OUTER_WINDOW, clampWindows, minTargetGap, windowsFor } from '../src/scoring';
 
 const onset = (time: number): DetectorEvent => ({ type: 'onset', time, rms: 0.3 });
@@ -181,5 +183,50 @@ describe('Judge: ventanas recortadas al hueco entre notas', () => {
     explicit.push([onset(at)]);
     expect(clamped.results()[0].judgement).not.toBe('hit');
     expect(explicit.results()[0].judgement).toBe('hit');
+  });
+});
+
+describe('summarize: estrellas', () => {
+  const res = (judgement: ScoredTarget['judgement'], i: number, wrongAttempts = 0): ScoredTarget =>
+    ({ itemId: `x${i}`, judgement, delta: judgement === 'late' ? 0.1 : judgement === 'early' ? -0.1 : 0, wrongAttempts, kind: { type: 'attack' } }) as unknown as ScoredTarget;
+  const many = (j: ScoredTarget['judgement'], n: number) => Array.from({ length: n }, (_, i) => res(j, i));
+
+  it('todo tarde o todo pronto no llega a 2 estrellas', () => {
+    expect(summarize(many('late', 20), 20, true).stars).toBe(1);
+    expect(summarize(many('early', 20), 20, true).stars).toBe(1);
+  });
+
+  it('65 % limpio y 35 % sin tocar ya no son 2 estrellas', () => {
+    const s = summarize(many('hit', 13), 20, true);
+    expect(s.cleanliness).toBeCloseTo(0.65);
+    expect(s.stars).toBe(1);
+  });
+
+  it('2 estrellas piden limpieza 0,75 y 3 piden 0,9', () => {
+    expect(summarize(many('hit', 15), 20, true).stars).toBe(2); // 75 % clean
+    expect(summarize(many('hit', 17), 20, true).stars).toBe(2); // score 0.85
+    expect(summarize(many('hit', 18), 20, true).stars).toBe(3);
+    // all hits but a third needed retries: accuracy 1, cleanliness 0.67
+    const retried = Array.from({ length: 18 }, (_, i) => res('hit', i, i % 3 === 0 ? 1 : 0));
+    const s = summarize(retried, 18, false);
+    expect(s.cleanliness).toBeLessThan(0.75);
+    expect(s.stars).toBe(1);
+  });
+
+  it('las notas de más restan (poco y con tope)', () => {
+    const clean = summarize(many('hit', 20), 20, true, 0);
+    const some = summarize(many('hit', 20), 20, true, 2);
+    const lots = summarize(many('hit', 20), 20, true, 500);
+    expect(some.score).toBeLessThan(clean.score);
+    expect(some.score).toBeGreaterThan(clean.score - 0.1);
+    expect(lots.score).toBeCloseTo(clean.score - 0.15);
+    expect(clean.stars).toBe(3);
+    expect(lots.stars).toBe(2);
+  });
+
+  it('no tocar nada, o casi nada, da 0 estrellas', () => {
+    expect(summarize([], 20, true).stars).toBe(0);
+    expect(summarize(many('hit', 2), 20, true).stars).toBe(0);
+    expect(summarize(many('hit', 6), 20, true).stars).toBe(1);
   });
 });

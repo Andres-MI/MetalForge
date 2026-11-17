@@ -220,7 +220,7 @@ describe('GameSession with the fake input', () => {
     expect(log.resolved.every((r) => r.judgement === 'miss')).toBe(true);
     expect(s.miss).toBe(exercise.targets.length);
     expect(s.accuracy).toBe(0);
-    expect(s.stars).toBe(1);
+    expect(s.stars).toBe(0); // playing nothing earns no star (before: always at least 1)
     const blob = (await store.getProgress('guitar')) as { mastery: { items: Record<string, { misses: number }> } };
     expect(Object.values(blob.mastery.items).every((i) => i.misses > 0)).toBe(true);
   });

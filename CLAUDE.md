@@ -93,7 +93,7 @@ de construcción y sus prompts en `docs/FASES.md`.
   ventanas acierto/pronto/tarde, más anchas en bajo, recortadas por ejercicio a 0,3 y 0,6 veces el hueco mínimo entre notas, con suelo 0,04 s: `clampWindows`). Los acordes pasan por `ChordVerifier`: con `spectralChords` el Judge
   espera el evento `strum` y `spectralChordVerifier` lo lee (todas las notas del acorde presentes y ninguna contradictoria;
   `ScoredTarget.chord` trae `missing`, `contradicted` y `cleanliness`); sin `strum` cae al verificador por tono.
-  `chordSet.ts` deriva de la lista de acordes las notas contradictorias; umbrales en `CHORD_THRESHOLDS`. `summarize` da precisión, tendencia y estrellas.
+  `chordSet.ts` deriva de la lista de acordes las notas contradictorias; umbrales en `CHORD_THRESHOLDS`. `summarize` da precisión, tendencia y estrellas (0 si casi no se tocó; 2 exigen limpieza ≥ 0,75 y precisión ≥ 0,7, 3 limpieza ≥ 0,9; las notas de más restan con tope).
 - `src/course/` — el curso como datos, puro y probado en `tests/course.test.ts`: `data.ts` (módulos de guitarra y de bajo con sus pasos
   aprender/practicar/repasar/jefe, qué abre cada uno y las pruebas del sondeo), `blob.ts` (lo que el curso guarda en el blob de progreso:
   `levels` = mejores estrellas por juego+nivel, `course` = sondeo/ajustes manuales/pasos/afinador, `turbo` = récords; todo opcional y

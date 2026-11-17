@@ -34,5 +34,5 @@ export interface RoundSummary {
   strays: number;
   /** 0..1, cleanliness weighs more than timing. */
   score: number;
-  stars: 1 | 2 | 3;
+  stars: 0 | 1 | 2 | 3;
 }
