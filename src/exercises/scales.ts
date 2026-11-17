@@ -6,8 +6,8 @@
  *  3 C major scale (open position), up and down        4 thirds on the pentatonic
  *  5 thirds on the major scale                         6 pentatonic, second position
  *  7 pentatonic, a position chosen by seed (3-5)       8 major scale, position at fret 7
- *  9 thirds in a position chosen by seed (2-5)         10 timed eighths at 80 bpm (second position, already known:
- *    time is the only new thing, the random positions stay in 7 and 9)
+ *  9 thirds in a position chosen by seed (2-5)         10 timed eighths at 80 bpm (first position, the one of level 2: the
+ *    clock is the only new thing; the random positions stay in 7 and 9; the second position has a single tonic on bass4)
  *
  * The ordered run always starts and ends on the tonic (A for the pentatonic, C for the major): it climbs from the
  * lowest tonic of the position to a higher tonic (one octave for levels 1-3 and for thirds, at most two octaves
@@ -61,7 +61,7 @@ const SPECS: Spec[] = [
   { scale: 'pent-min', pos: [2, 4], pattern: 'updown' },
   { scale: 'major', pos: 1, pattern: 'updown' },
   { scale: 'pent-min', pos: [1, 4], pattern: 'thirds' },
-  { scale: 'pent-min', pos: 1, pattern: 'updown', timed: true },
+  { scale: 'pent-min', pos: 0, pattern: 'updown', timed: true },
 ];
 
 export interface ScaleNote {

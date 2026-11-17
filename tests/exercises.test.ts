@@ -336,13 +336,19 @@ describe('rhythm: el primer compás empieza en el tiempo 1', () => {
 });
 
 describe('scales', () => {
-  it('level 10 adds only the clock: same position as level 6, timed (the random positions stay in levels 7 and 9)', () => {
+  it('level 10 adds only the clock: the first position of level 2 (up and down, now up to two octaves), timed (the random positions stay in levels 7 and 9)', () => {
     for (let seed = 1; seed <= 8; seed++) {
-      const l6 = generate('scales', { instrument: 'guitar', level: 6, seed });
-      const l10 = generate('scales', { instrument: 'guitar', level: 10, seed });
-      expect(l10.timed).toBe(true);
-      expect(l6.timed).toBe(false);
-      expect(l10.targets.map((t) => t.itemId)).toEqual(l6.targets.map((t) => t.itemId));
+      for (const instrument of INSTS) {
+        const l2 = generate('scales', { instrument, level: 2, seed });
+        const l10 = generate('scales', { instrument, level: 10, seed });
+        expect(l10.timed).toBe(true);
+        expect(l2.timed).toBe(false);
+        expect(l10.targets[0].itemId).toBe(l2.targets[0].itemId);
+        const known = new Set(l2.targets.map((t) => t.itemId));
+        expect(l10.targets.filter((t) => known.has(t.itemId)).length).toBeGreaterThan(l2.targets.length - 1);
+        expect(new Set(l10.targets.map((t) => t.itemId.split(':m')[0]))).toEqual(new Set(l2.targets.map((t) => t.itemId.split(':m')[0])));
+        expect(l10.targets.length).toBeGreaterThanOrEqual(10);
+      }
     }
   });
 
