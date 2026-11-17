@@ -41,6 +41,13 @@ de construcción y sus prompts en `docs/FASES.md`.
 - `npx tsx scripts/make-calibration-wav.ts <wav> [lagMs]` y `node scripts/calibrate.cjs <wav> [url] [etiqueta]` — WAV de
   pulsaciones alineadas al metrónomo de calibración y medición con audio real; `scripts/audio-chain.cjs` recorre
   salón → Pulso con calibración automática y muestra los diagnósticos de audio
+- `node scripts/course-fake.cjs [url] [guitar|bass4|bass5] [escenario ...]` — recorre el curso con un perfil NUEVO y la entrada falsa:
+  `fresh` (selector → sondeo → salón con solo los primeros módulos → Salto bien jugado → resultados con el desbloqueo → Trastes encendido),
+  `course`, `review` (repaso diario completo), `boss` (jefe de Ritmo), `turbo` (hasta perder, récord guardado), `settings` (desbloqueo
+  manual y borrado) y `placement` (sondeo bien jugado); sale con código 1 si algo falla; capturas `test-results/curso-*`. Usa
+  `scripts/course-lib.cjs` (`autoplay` juega Pulso, Salto, Luciérnagas y Ninja con la entrada falsa)
+- Los demás scripts de navegador añaden `?curso=abierto` a la URL: abre todos los módulos y no ofrece el sondeo (si no, el salón nuevo
+  tiene las máquinas apagadas)
 - `npm run build` — comprobación de tipos y compilación
 
 ## Arquitectura
@@ -68,7 +75,11 @@ de construcción y sus prompts en `docs/FASES.md`.
   `calibration`, `audio`, `forge`, `wizard`, para automatizar).
 - `src/scenes/` — escenas Phaser: `boot`, `picker` (primer arranque), `hub` (salón recreativo; las máquinas salen
   de la lista de `hubData.ts`), `soon` («Próximamente»), `tuner`, `modechoice` (Aprender/Practicar), `levelselect`,
-  `results` (común) y `calibration` (tecla C en el salón). Juegos, por pareja aprender/arcade: `pulso`/`salto` (ritmo),
+  `results` (común; guarda las estrellas del nivel, muestra lo que desbloquea y ofrece «Siguiente paso») y `calibration` (tecla C en el salón).
+  Curso: `course` (tecla U: módulos y pasos), `flow` (tarjeta, puente entre rondas y resultado combinado de un jefe, un repaso o Turbo),
+  `placement` (sondeo de nivel: pantalla neutra sobre `GameSession`), `turbo` (elegir arcade y récords) y `settings` (tecla S: desbloqueo
+  manual, repetir sondeo, borrar progreso con confirmación); `courseNav.ts` arranca pasos/repasos/jefes/Turbo y pasa cada resultado al
+  flujo en marcha (`registry.get('flow')`). Juegos, por pareja aprender/arcade: `pulso`/`salto` (ritmo),
   `fireflies`/`ninja` (trastes; `fretsDraw.ts` dibuja el mástil de ambos), `telar`/`portero` (cuerdas; `stringsView.ts`
   son ayudas de dibujo de ambos) y `climb`/`tower` (escalas; `scalesDraw.ts`) y `forge`/`wizard` (acordes; `chordsDraw.ts` dibuja la caja de acorde, la runa y el mástil de bajo). Una escena nueva se registra en `main.ts`.
 - `src/profile/` — perfil en IndexedDB tras la interfaz `KeyValueStorage` (`store.ts`; `idb.ts` real, `memory.ts`
@@ -83,6 +94,14 @@ de construcción y sus prompts en `docs/FASES.md`.
   espera el evento `strum` y `spectralChordVerifier` lo lee (todas las notas del acorde presentes y ninguna contradictoria;
   `ScoredTarget.chord` trae `missing`, `contradicted` y `cleanliness`); sin `strum` cae al verificador por tono.
   `chordSet.ts` deriva de la lista de acordes las notas contradictorias; umbrales en `CHORD_THRESHOLDS`. `summarize` da precisión, tendencia y estrellas.
+- `src/course/` — el curso como datos, puro y probado en `tests/course.test.ts`: `data.ts` (módulos de guitarra y de bajo con sus pasos
+  aprender/practicar/repasar/jefe, qué abre cada uno y las pruebas del sondeo), `blob.ts` (lo que el curso guarda en el blob de progreso:
+  `levels` = mejores estrellas por juego+nivel, `course` = sondeo/ajustes manuales/pasos/afinador, `turbo` = récords; todo opcional y
+  `migrateLegacy` convierte los `arcadeBest` de perfiles antiguos), `progress.ts` (`deriveCourse`: módulos abiertos, pasos hechos y
+  siguiente paso, derivados del blob; `starsAt`, `bestFor`), `review.ts` (repaso: `planReview` elige con `pickForReview` los elementos más flojos
+  y busca el nivel y la semilla cuyo ejercicio contiene más de ellos), `placement.ts` (qué prueba toca y qué desbloquea el resultado),
+  `flow.ts` (jefe, repaso y Turbo como una cadena de juegos existentes: estado puro), `describe.ts` (texto neutro de un objetivo) y
+  `service.ts` (lee y escribe el blob a través del `ProfileStore`).
 - `src/progress/` — dominio por `itemId` con repetición espaciada (`updateMastery`, `pickForReview`,
   `toJSON`/`fromJSON`). El tiempo se inyecta; el guardado es de `src/profile/`.
 - `src/game/` — motor de juego común (guía en `docs/JUEGOS.md`): `GameClock` (tiempo del AudioContext), `Metronome`,

@@ -99,6 +99,24 @@ Con reloj (niveles 7+) coloca los tiros con `session.beat()`. Reglas en `src/gam
 `chord` → sus midis, `attack`/`pitchClass` → ninguna) y `dispose()` las borra. El detector solo las usa como último
 recurso cuando un ataque queda tapado por cuerdas que siguen sonando. Un juego no tiene que hacer nada.
 
+## Flujos y curso (jefes, repasos, Turbo)
+
+El curso (`src/course/`, ver CLAUDE.md) encadena juegos EXISTENTES sin que ninguno sepa que forma parte de un flujo:
+
+- Un flujo (`Flow`, `src/course/flow.ts`) vive en `scene.registry.get('flow')` y lista fases `{ gameId, level, seed? }`. `launchGame` no
+  cambia: la escena `flow` lanza cada fase con él. Al terminar una ronda la escena `results` pregunta `isFlowResult(...)`; si es la fase
+  esperada guarda las estrellas del nivel (`recordLevel`), avanza el flujo y abre la escena `flow` (puente o resultado combinado) en lugar de
+  mostrar su pantalla. Un juego nuevo solo tiene que acabar con `showResults` / `beginGame` como siempre.
+- Esc en un juego vuelve al salón y el salón borra el flujo.
+- Turbo no toca ningún arcade: cada ronda es el mismo arcade en el nivel siguiente (en el 10 se repite); termina la primera ronda con menos
+  de 2 estrellas y el récord (puntos de todas las rondas, rondas superadas) se guarda en `turbo` del blob.
+- El repaso elige `(nivel, semilla)` de cada ronda con `bestExercise` (genera niveles 1..tope x 16 semillas y se queda con el ejercicio que
+  contiene más `itemId` buscados): los generadores no necesitan saber nada de repaso.
+- Los juegos con oferta al terminar (Forja en niveles de cambio, Escalada) esperan una tecla (Enter = ronda extra, R = resultados) también
+  dentro de un flujo.
+- `launchGame` se apoya en `openSession(from, exercise, withMastery)` (abre la entrada y crea la `GameSession`), que usa también el sondeo
+  de nivel (`scenes/placement.ts`, una pantalla neutra para cualquier habilidad).
+
 ## Reglas
 
 - Aprender (`learn`): sin vidas ni fallo. Practicar (`practice`): puede haber presión, pero siempre acaba con
